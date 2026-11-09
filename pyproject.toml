@@ -5,7 +5,20 @@ build-backend = "hatchling.build"
 [project]
 name = "tracerworks"
 version = "0.1.0"
-description = "A factory of coding agents: specs and tickets in, merged pull requests out."
+description = "A self-hosted factory of AI coding agents (Claude Code): GitHub issues in, tested and merged pull requests out."
+keywords = [
+    "ai-agents",
+    "coding-agents",
+    "claude-code",
+    "agentic-coding",
+    "software-factory",
+    "spec-driven-development",
+    "tdd",
+    "merge-queue",
+    "github",
+    "git-worktree",
+    "tmux",
+]
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -25,6 +38,8 @@ classifiers = [
 
 [project.urls]
 Repository = "https://github.com/hugop33/tracerworks"
+Documentation = "https://github.com/hugop33/tracerworks/blob/main/INSTALL.md"
+Issues = "https://github.com/hugop33/tracerworks/issues"
 
 [project.optional-dependencies]
 # What the suite needs; `dev` adds what the CI lints and types with.

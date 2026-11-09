@@ -1,0 +1,16 @@
+name: Feedback or idea
+description: Tell what you tried, what got in your way, or what you would change.
+labels: ["idea"]
+body:
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Your feedback
+      description: What you tried, what worked, what got in your way, what you would change.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Your setup
+      description: Optional. Your machine, your repository's size, how many workers you run.

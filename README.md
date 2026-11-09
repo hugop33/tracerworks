@@ -5,18 +5,100 @@
 > from **Matt Pocock's skills: <https://github.com/mattpocock/skills>**. The
 > factory runs agents that use them; it does not ship them. Go there first.
 
-**tracerworks is a factory of coding agents.** You write a spec and its
-tickets as GitHub issues and put a label on the spec; tracerworks starts a
-worker — Claude Code or Codex, in its own git worktree and tmux window — that
-implements the tickets one commit each, opens a pull request, watches its CI,
-and goes to rest. A merge queue tests the pull request once more on the base
-branch of the moment, and tracerworks merges it. A read-only dashboard shows
-it all. It is a single command, stateless, standard library only, and has
-been used daily since September 2026 to build a personal project.
+**tracerworks is a self-hosted software factory for AI coding agents.** You
+write a spec and its tickets as GitHub issues. tracerworks runs
+[Claude Code](https://claude.com/claude-code) workers, each in its own git
+worktree, that implement the tickets test-first and open a pull request. A
+merge queue tests it again, and tracerworks merges it. You decide what to
+build; the factory takes it from issue to merged pull request, and a
+dashboard shows every step.
 
-![The dashboard, on a fictitious project](docs/dashboard.png)
+It is a single command, stateless, written in Python with the standard
+library only, and MIT-licensed. It has been used daily since September 2026
+to build a personal project.
 
-## The loop
+![The tracerworks dashboard: queue, development, light check, merge queue and deliveries, on a fictitious project](docs/dashboard.png)
+
+**[Install it →](INSTALL.md)** · [Screens](#screens) ·
+[How it works](#how-it-works) · [Security model](#security-model) ·
+[FAQ](#faq) · [Feedback](#feedback)
+
+## What it does
+
+- **Spec-driven development with AI agents.** A spec and its tracer-bullet
+  tickets, written as GitHub issues, are the only input. Each ticket is a
+  thin slice through every layer, built and proven on its own.
+- **Several coding agents in parallel.** Each worker is a Claude Code
+  session in a tmux window, on its own git worktree and branch, in its own
+  systemd scope with a memory cap.
+- **A queue you steer with labels.** `to-launch` queues a spec, `priority`
+  moves it up, `needs-human` tells you a worker waits for you.
+- **Test-first, one commit per ticket.** The worker pushes each ticket with
+  its proof, opens the pull request ready, and watches its CI until it is
+  green.
+- **A merge queue.** One pull request at a time is updated with the base
+  branch, its full suite run once, then merged. A red sends the worker back
+  with its red jobs.
+- **A read-only dashboard.** A kanban of the factory (queue, development,
+  light check, merge queue, delivered), the machine's memory and CPU, your
+  Claude and GitHub Actions quotas, and measures over time.
+- **Guard rails.** Trusted logins only, a session guard that fails closed,
+  denied tools at launch. Data is never an instruction.
+
+## Who it is for
+
+Developers and small teams who already work with Claude Code and want to
+hand it whole features, not single prompts: write the spec in the morning,
+review merged pull requests in the evening. You need a Linux machine you
+control (a small VPS is enough) and a GitHub repository with a CI.
+
+## Screens
+
+Every screen of the dashboard, on a fictitious project. It is read only and
+behind a password; it refreshes itself every minute.
+
+### Factory: the queue, the workers, the merge queue
+
+Specs waiting in the queue, workers in development with their tickets, pull
+requests in light check and in the merge queue, and what was delivered over
+the last 48 hours. Above them: the machine's memory, CPU and disk, the Claude
+and GitHub Actions quotas, and the CI runners.
+
+![The Factory tab: five columns, from the queue to the deliveries](docs/dashboard.png)
+
+### A spec's panel: its work, its tickets, its story
+
+A click on a card opens its spec: the ticket its worker is on, its tokens, its
+model and effort, its branch, each ticket, its pull request and CI, its place
+in the merge queue, and each change of its state.
+
+![A spec's panel beside the Factory tab](docs/panel.png)
+
+### Measures: 30 days of CI, deliveries, quotas and the machine
+
+Pull requests merged per day, CI duration and reds by cause, the merge
+queue's time, tokens and cost per pull request, the Claude week and the
+Actions month with their projections, the machine hour by hour, the flaky
+tests and the alerts.
+
+![The Measures tab: tiles, quotas and charts over 30 days](docs/measures.png)
+
+### Waiting on GitHub: what is not launched yet
+
+The specs ready to launch on your word, and the open bugs, tasks and ideas,
+grouped by nature.
+
+![The Waiting on GitHub tab: specs ready, bugs, tasks, ideas](docs/waiting.png)
+
+### Settings: limits and alerts, in force at once
+
+How many workers at most, the memory a launch needs, the Claude quota above
+which nothing starts, and which alerts are sent. A change is written to the
+operator's state file and holds at once, without a restart.
+
+![The Settings tab: launches, quotas and alerts](docs/settings.png)
+
+## How it works
 
 1. **Spec.** You write what to build as a GitHub issue labelled `spec`.
 2. **Tickets.** The spec is cut into tracer-bullet tickets (`ticket`), each
@@ -39,23 +121,34 @@ been used daily since September 2026 to build a personal project.
 7. **Night.** Your CI's full suite runs on the base branch; the dashboard
    and the alerts say what broke and what slowed down.
 
+## Quick start
+
+```sh
+uv tool install git+https://github.com/hugop33/tracerworks
+```
+
+or `pipx install git+https://github.com/hugop33/tracerworks`. Then:
+
+1. Copy [`examples/tracerworks.toml`](examples/tracerworks.toml) to
+   `~/.config/tracerworks/project.toml` and set your repository, your login,
+   your clone and your limits.
+2. Create the labels, and a fine-grained GitHub token for the workers.
+3. Commit the session guard and the skills to your repository.
+4. Start the relauncher's timer, then put `to-launch` on a spec.
+
+**[INSTALL.md](INSTALL.md)** walks through every step, with the commands, the
+dashboard's service and a troubleshooting table. `tracerworks status` reads
+your project file and says what it sees; `tracerworks <command> --help`
+documents each command.
+
 ## Requirements
 
 - Linux with `systemd --user` (each worker runs in its own scope, capped in
   memory; the relauncher is a user timer).
 - `tmux`, `git`, and the GitHub CLI `gh`, authenticated.
 - Python 3.12 or later.
-- Claude Code and/or Codex, logged in.
+- Claude Code, logged in.
 - Your repository on GitHub, with a CI.
-
-## Install
-
-```sh
-uv tool install git+https://github.com/hugop33/tracerworks
-```
-
-or `pipx install git+https://github.com/hugop33/tracerworks`. Then
-`tracerworks --help`.
 
 ## Configure
 
@@ -63,9 +156,9 @@ or `pipx install git+https://github.com/hugop33/tracerworks`. Then
 file, none in the tool: start from
 [`examples/tracerworks.toml`](examples/tracerworks.toml), commented, and put
 it at `~/.config/tracerworks/project.toml` (or pass `--config`, or set
-`$TRACERWORKS_CONFIG`). `tracerworks status` reads it and says what it sees.
+`$TRACERWORKS_CONFIG`).
 
-**The labels to create** on your repository (names are the project file's):
+**The labels** on your repository (names are the project file's):
 
 | Label | Put by | What it does |
 |---|---|---|
@@ -84,16 +177,16 @@ it at `~/.config/tracerworks/project.toml` (or pass `--config`, or set
 (write on Contents, Pull requests, Issues and Workflows; read on Actions,
 Commit statuses and Checks), in a file of mode 600 the project file names.
 
-**The session guard** (optional, recommended). A Claude Code `PreToolUse`
-hook that refuses what no session may do on your systems: write to a
-read-only repository, write to your production shop's API, call a list of
-forbidden tools. Copy `src/session_guard` into your project as
-`tools/session_guard`, its rulebook
-[`examples/session_guard.json`](examples/session_guard.json) as
+**The session guard** (required). A Claude Code `PreToolUse` hook that
+refuses what no session may do on your systems: write to a read-only
+repository, write to your production shop's API, call a list of forbidden
+tools. Copy `src/session_guard` into your project as `tools/session_guard`,
+its rulebook [`examples/session_guard.json`](examples/session_guard.json) as
 `.claude/session_guard.json`, and wire it with
-[`examples/claude-settings.json`](examples/claude-settings.json). It fails
-closed: a guard that cannot judge refuses, and says what to repair.
-tracerworks tries every worktree's guard before a launch.
+[`examples/claude-settings.json`](examples/claude-settings.json), on your base
+branch. It fails closed: a guard that cannot judge refuses, and says what to
+repair. tracerworks tries every worktree's guard before a launch or a resume,
+and refuses one whose guard is absent or answers wrong.
 
 ## Run
 
@@ -111,7 +204,6 @@ port you set — localhost, with your own HTTPS proxy in front.
 **By hand.** `tracerworks status` (workers, runners, memory, quota),
 `start <spec>`, `message <spec>`, `pause`, `resume`, `stop`, `set-aside`,
 `history <spec>`, `usage <spec>`, `db` (the history base, read only).
-`tracerworks <command> --help` says each one.
 
 ## Security model
 
@@ -151,15 +243,71 @@ tracerworks:
 3. **The parent on one line**: `Parent: #12` (or a `## Parent` section whose
    first reference is the spec).
 
+## FAQ
+
+**What is tracerworks?**
+An open-source, self-hosted orchestrator of AI coding agents. It turns
+GitHub issues (a spec and its tickets) into tested, merged pull requests,
+with Claude Code workers running in parallel on one Linux machine, a merge
+queue and a dashboard.
+
+**Why "tracer"?**
+The tickets are tracer bullets: thin end-to-end slices, each built, tested
+and committed on its own, so a spec advances in small proven steps. The idea
+comes from *The Pragmatic Programmer*; the skills that write such tickets
+come from [mattpocock/skills](https://github.com/mattpocock/skills).
+
+**Which coding agents does it run?**
+Claude Code today, in auto mode, with the model and effort you choose per
+spec. The code has a place for a second provider, Codex, but launching Codex
+workers is not wired yet.
+
+**Does it need a server?**
+A Linux machine with `systemd --user` that stays on: a small VPS is enough.
+The workers, the relauncher and the dashboard all run there; you steer from
+GitHub and the dashboard.
+
+**Is it safe to let agents merge their own work?**
+They don't merge it: tracerworks does, through the merge queue, only for a
+ready pull request by a trusted author whose CI is green on the base branch
+of the moment. Workers obey trusted logins only, run under a session guard
+that fails closed, and are denied the tools you name. What they may decide
+alone, and what they must ask you, is written in their primer.
+
+**How much does it cost?**
+tracerworks is free (MIT). You pay for your Claude Code plan or API usage,
+your CI minutes and the machine. The dashboard shows the Claude and GitHub
+Actions quotas, and `tracerworks usage <spec>` the tokens a spec cost.
+
+**How is it different from a hosted coding agent?**
+A hosted agent runs a task in its vendor's cloud. tracerworks runs on your
+own machine, with your CI and your rules, drives several workers through one
+queue, and owns the whole path from spec to merge: launch, resume after a
+pause, CI reruns, merge queue, cleanup.
+
+**Is it ready for production use?**
+It is alpha software for one operator. It has been used daily since
+September 2026 on one project; expect rough edges anywhere else.
+
 ## Known limits
 
 - **One operator.** One person's trust, labels and dashboard; no teams.
 - **Linux only**: systemd user scopes and timers.
+- **Claude Code only** for now: Codex workers are not wired yet.
 - **Some instructions to the workers are in French** (the primer, the
   resumes, the comments tracerworks reads back): translating them would
   change what it reads in older comments. Your own `primer_rules` can be in
   any language.
 - The session guard's messages are in French too.
+
+## Feedback
+
+- **A bug, or something unclear in the docs**: open an
+  [issue](https://github.com/hugop33/tracerworks/issues/new/choose).
+- **A question, an idea, or what you built with it**: start a
+  [discussion](https://github.com/hugop33/tracerworks/discussions).
+- **A security problem**: report it privately, as [SECURITY.md](SECURITY.md)
+  says, never in a public issue.
 
 ## License
 
