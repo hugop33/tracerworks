@@ -1,0 +1,4 @@
+The pre-push hook failed on `migrations` because Postgres did not start in time
+(container timeout), not because of the change.
+
+Should I retry the push?

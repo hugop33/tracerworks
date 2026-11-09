@@ -1,0 +1,4 @@
+﻿2026-09-30T16:51:41.6148773Z Current runner version: '2.337.0'
+2026-09-30T16:51:41.6185621Z ##[group]Runner Image Provisioner
+2026-09-30T16:51:41.6186921Z Hosted Compute Agent
+2026-09-30T16:52:09.8468209Z ##[error]Process completed with exit code 1.

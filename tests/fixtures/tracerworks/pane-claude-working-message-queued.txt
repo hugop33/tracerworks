@@ -1,0 +1,50 @@
+
+[38;5;174m ▐[48;5;16m▛███▛█[39m[49m   [1mClaude Code[0m [38;5;246mv2.1.285[39m
+[38;5;174m▝▜[48;5;16m█████[49m█▀[39m  [38;5;246mOpus 5.5 · Claude Max[39m
+[38;5;174m ▝▝   ▝▝ [39m  [38;5;246m/tmp/probe826[39m
+
+
+[38;5;239m[48;5;237m❯ [38;5;231mLance exactement cette commande bash et rien d autre : python3 -c "import time; time.sleep(45); print(42)" puis dis juste le résultat.[39m
+
+[38;5;246m[49m [39m Sleeping 45 seconds then printing 42[38;5;246m · 13s[39m
+[38;5;246m  ⎿  $ python3 -c "import time; time.sleep(45); print(42)" (12s)[39m
+     [38;5;246m(ctrl+b ctrl+b (twice) to run in background)[39m
+
+[38;5;239m[48;5;237m❯ [38;5;246mMessage de Sam (30/09 16h40, m-abc123) :[39m
+  [38;5;246mquand tu as fini, écris juste PONG.[39m
+[49m  [38;5;246mctrl+x ctrl+s to send now[39m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[38;5;174m✶[39m [38;5;174mPrecipitating… [38;5;246m(17s · ↓[39m [38;5;246m126 tokens)[39m
+                                                             [38;5;246mtmux detected · scroll with PgUp/PgDn · or add 'set -g mouse on' to ~/.tmux.conf for wheel scroll[39m
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[38;5;246m❯ [2m[39mPress up to edit queued messages[0m
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  [38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · esc to interrupt · ← 1 agent[39m

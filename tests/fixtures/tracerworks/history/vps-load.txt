@@ -1,0 +1,5 @@
+2026-11-03 09:00:01 mem_dispo=3508MB disque=80% tmp=15% volumes_liberes=0B runner=active work=872MB serve_rss=90MB serve_cgroup=120MB serve_swap=20MB serve_cpu=302s top: 
+2026-11-03 09:00:02 cpu=?% iowait=?% load1=16.40 load5=15.20 load15=12.05 cores=6 mem_dispo=3500MB cpu_workers=?% cpu_ci=?% cpu_factory=?% cpu_containers=?% cpu_rest=?%
+2026-11-03 09:05:01 cpu=91.4% iowait=0.5% load1=12.54 load5=12.68 load15=12.36 cores=6 mem_dispo=4195MB cpu_workers=24.7% cpu_ci=40.6% cpu_factory=11.4% cpu_containers=8.6% cpu_rest=6.1%
+2026-11-03 09:10:01 cpu=50.0% iowait=1.0% load1=6.00 load5=8.00 load15=10.00 cores=6 mem_dispo=5000MB cpu_workers=20.0% cpu_ci=?% cpu_factory=1.0% cpu_containers=2.0% cpu_rest=?%
+2026-11-03 09:15:01 cpu=garbage load1=x

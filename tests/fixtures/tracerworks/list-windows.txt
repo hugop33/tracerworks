@@ -1,0 +1,5 @@
+claude	claude	1790413547	
+factory	claude	1790413649	
+worker-501	claude	1790413000	claude
+worker-510	claude	1790412000	claude
+worker-530	bash	1790411000	claude

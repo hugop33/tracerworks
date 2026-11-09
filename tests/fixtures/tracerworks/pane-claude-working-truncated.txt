@@ -1,0 +1,14 @@
+      219 +    await until(() => opened[0]?.signal.aborted === true, "the
+          + old stream was kept");
+     … 11 more lines
+  ⎿  Allowed by auto mode classifier
+● Red as predicted. Fix in once:
+● Running 1 shell command…
+› Message from @acd54dd30056a5479 (ctrl+o to expand)
+* Topsy-turvying… (28s · ↓ 2.0k tokens)
+  ⎿  Tip: Hit shift+tab to cycle between manual mode, auto-accept edit mode, and
+     plan mode
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · /tasks to see subagents · esc to int…

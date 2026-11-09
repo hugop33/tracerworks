@@ -1,0 +1,5 @@
+La voie légère de la PR #1786 est rouge : le job `integration (1/2)` s'est arrêté sur
+« The self-hosted runner lost communication with the server », sans test rouge.
+Les autres jobs sont verts.
+
+Je repousse un commit vide pour relancer la CI, ou tu préfères attendre ?

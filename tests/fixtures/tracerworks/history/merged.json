@@ -1,0 +1,41 @@
+[
+ {
+  "createdAt": "2026-09-30T17:10:20Z",
+  "headRefName": "tracerworks/claude-statusline-trial",
+  "mergedAt": "2026-09-30T17:13:59Z",
+  "number": 834,
+  "title": "Dark mode for the settings screen",
+  "url": "https://github.com/acme/widgets/pull/834",
+  "additions": 5,
+  "deletions": 0,
+  "changedFiles": 1,
+  "closingIssuesReferences": []
+ },
+ {
+  "createdAt": "2026-09-30T16:57:20Z",
+  "headRefName": "ci/all-but-integration-on-github",
+  "mergedAt": "2026-09-30T17:08:01Z",
+  "number": 833,
+  "title": "Retry a failed webhook",
+  "url": "https://github.com/acme/widgets/pull/833"
+ },
+ {
+  "createdAt": "2026-09-30T16:51:24Z",
+  "headRefName": "agent/830-worker-states",
+  "mergedAt": "2026-09-30T17:07:21Z",
+  "number": 832,
+  "title": "Archive old projects (#830)",
+  "url": "https://github.com/acme/widgets/pull/832",
+  "additions": 412,
+  "deletions": 37,
+  "changedFiles": 9,
+  "closingIssuesReferences": [
+   {
+    "number": 830
+   },
+   {
+    "number": 831
+   }
+  ]
+ }
+]

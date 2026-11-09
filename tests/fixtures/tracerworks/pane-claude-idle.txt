@@ -1,0 +1,7 @@
+⏺ Ticket #503 fermé avec sa preuve ; commit poussé. Pour info, la chaîne « esc to interrupt »
+  n'apparaît ici que dans le fil, pas dans la ligne d'état.
+
+────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents

@@ -1,0 +1,1832 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Opened as an app on an iPhone (#823): the page runs under Apple's status
+     bar, on its own background; the safe-area insets below keep it clear. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#121417">
+<meta name="referrer" content="no-referrer">
+<title>factory</title>
+<!--
+  The factory dashboard (#806), served by `tracerworks serve`. It only DRAWS
+  snapshot.json: every rule (states, current ticket, order) lives in
+  snapshot.py. No dependency, no build. Its only writes: the star (#1877)
+  and the Settings tab (#2190), each through its own route of `serve`.
+  Validated look: prototype/factory-dashboard (30/09).
+-->
+<style>
+:root{--bg:#121417;--card:#1a1d21;--card2:#21252a;--line:#2f343b;--fg:#d9dde3;--dim:#7d8590;
+  --accent:#5b9cf5;--accent-bg:#132033;--green:#7cc47f;--green2:#5b8f5e;--yellow:#e2b85c;--red:#e5696b;--grey:#6e7681;--violet:#b48cf2;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:12.5px/1.45 var(--mono);overflow-x:hidden}
+/* no rubber band (the operator, 16/10, as on his other screens): a flick with nothing to scroll no longer drags the page.
+   On html only: its value is the window's. Body's overflow-x makes it a box of its own, and on it
+   `none` stopped the wheel from reaching the window — the Quality tab no longer scrolled. */
+html{overscroll-behavior:none}
+body{padding:calc(12px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left))}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;text-align:left;cursor:pointer}
+a{color:var(--accent)}
+.dim{color:var(--dim)} .acc{color:var(--accent)} .g{color:var(--green)} .y{color:var(--yellow)} .r{color:var(--red)}
+.tt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.st-active{color:var(--green)} .st-ci{color:var(--yellow)} .st-blocked{color:var(--red)} .st-asking{color:var(--red)} .st-stopped{color:var(--grey)} .st-dead{color:var(--red)} .st-done{color:var(--green2)} .st-idle{color:var(--dim)} .st-parked{color:var(--yellow)}
+#panel code{display:block;margin-top:4px;padding:4px 8px;border:1px solid var(--line);border-radius:4px;background:var(--card2);user-select:all}
+
+/* header */
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.brand{font-weight:700;font-size:14px} .brand .acc{margin-right:6px}
+.live{font-size:11px;color:var(--dim)}
+.refresh{margin-left:8px;color:var(--accent);border:1px solid #2d4a70;border-radius:4px;padding:0 6px}
+.refresh:disabled{color:var(--dim);border-color:var(--line);cursor:default}
+.refresh .ic{display:inline-block}
+.refresh:disabled .ic{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* the gauges side by side, on one row that wraps on a narrow screen (#822) */
+.gauges{display:flex;flex-wrap:wrap;gap:3px 18px;font-size:11.5px;align-items:center}
+.gauge{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;cursor:default;border-radius:3px}
+.gauge:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+/* the detail of a gauge, just under it (#848) */
+#tip{position:absolute;z-index:40;max-width:min(360px,calc(100vw - 16px));background:#16191d;border:1px solid var(--line);border-radius:6px;padding:7px 10px;box-shadow:0 8px 24px #000a;font-size:11.5px;line-height:1.5}
+#tip dl{display:grid;grid-template-columns:auto 1fr;gap:1px 12px;margin:4px 0 0}
+#tip dt{color:var(--dim)} #tip dd{margin:0;overflow-wrap:anywhere}
+#tip dd.n,#panel dd.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#panel dl.nums{grid-template-columns:auto auto;justify-content:start}
+/* a name and a bar; the figures are in the hover detail (the operator, 30/09) — and
+   on a phone, where a tap shows it, the short value also stays under the bar */
+.gauge .val{display:none}
+@media (max-width:759px){.gauge{white-space:normal;flex-wrap:wrap;column-gap:6px}.gauge .val{display:inline}}
+.bar{letter-spacing:-1px}
+
+/* the Factory kanban (#1824): Queue · In development · Light check · Merge queue · Delivered,
+   no bubble around a column; 5 → 3 → 2 → 1 columns */
+.plan{display:grid;gap:18px 22px;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-areas:"queue dev check mq livre"}
+@media (max-width:1519px){.plan{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"queue dev check" "mq livre ."}}
+@media (max-width:1139px){.plan{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"queue dev" "check mq" "livre ."}}
+@media (max-width:759px){body{padding:10px}.plan{grid-template-columns:minmax(0,1fr);grid-template-areas:"queue" "dev" "check" "mq" "livre"}}
+/* in five columns the kanban goes down to the window's bottom (#1279): each column scrolls on its own */
+.fitmode .plan{grid-template-rows:minmax(0,1fr)}
+.fitmode .plan > .st{min-height:0;overflow-y:auto}
+.st{min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px;position:relative;display:flex;flex-direction:column}
+.st h3{margin:0 0 10px;font-size:11px;letter-spacing:.09em;color:var(--dim);font-weight:600;display:flex;justify-content:space-between;height:16px;line-height:16px}
+.st h3 b{color:var(--fg);letter-spacing:0}
+.plan > .st{background:none;border:0;border-radius:0;padding:0 2px}
+.plan > .st h3{border-bottom:1px solid var(--line);padding-bottom:6px;height:auto;margin-bottom:4px}
+.hint{color:var(--grey);font-size:10.5px;margin:2px 0 8px}
+.empty{color:var(--dim);font-size:11px}
+/* the banner: nothing for the operator to do, in green; or what needs them, one line each, in red */
+.calm{display:flex;align-items:center;gap:8px;border:1px solid #2c4a2f;border-left:3px solid var(--green);background:#151c17;border-radius:8px;padding:6px 12px;margin:0 0 8px;font-size:11.5px;color:var(--dim)}
+.calm b{color:var(--green);letter-spacing:.06em;font-weight:600}
+.needs{border:1px solid #5b2e30;border-left:3px solid var(--red);background:#1c1618;border-radius:8px;padding:6px 12px;margin:0 0 8px}
+.needs h3{margin:0 0 4px;font-size:11px;letter-spacing:.09em;color:var(--red);font-weight:600}
+.needs .li:nth-child(odd){background:none} .needs .li .why{margin-left:8px}
+/* the memory alert (#2096) wraps rather than cut its processes: never wider than the card, on a phone too */
+.needs .li.wrap{height:auto;min-height:26px;padding:3px 8px} .needs .li.wrap .why{white-space:normal;overflow-wrap:anywhere}
+/* the machine line: each runner and its job, the jobs waiting, the 30 latest runs (newest on the left) */
+.machine{display:flex;flex-wrap:wrap;align-items:center;gap:4px 22px;font-size:11px;color:var(--dim);padding:4px 2px 10px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.machine b{color:var(--fg);font-weight:500}
+.machine .runs{margin-left:auto;display:flex;gap:2px;align-items:center}
+.machine .runs button{width:6px;height:12px;border-radius:1px;background:var(--grey);padding:0}
+.machine .runs button.ok{background:var(--green2)} .machine .runs button.ko{background:var(--red)}
+.led{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--grey);margin-right:5px}
+.led.busy{background:var(--accent)} .led.off{background:var(--red)}
+/* a light card: number, rank, since when, a title on two lines at most, all at 11.5 px like Delivered;
+   its edge says its worker — green working, violet waiting for the operator, red blocked */
+.kcard{display:flex;flex-direction:column;width:100%;text-align:left;background:var(--card);border:1px solid transparent;border-radius:8px;padding:7px 9px;margin-bottom:7px;cursor:pointer;font-size:11.5px}
+.kcard:hover{border-color:#3a4049} .kcard.work{border-color:var(--green2)} .kcard.you{border-color:var(--violet)} .kcard.bad{border-color:var(--red)}
+.kcard .h{display:flex;gap:6px;color:var(--dim)} .kcard .h .id{color:var(--accent);font-weight:700} .kcard .h .lvl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0} .kcard .h .tm{margin-left:auto}
+.kcard .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:1px 0 2px;line-height:1.4}
+.kcard .s{display:flex;gap:8px;color:var(--dim);min-width:0}
+.kcard .s .w{flex:0 0 auto;font-weight:600} .kcard .s .w.you{color:var(--violet)} .kcard .s .w.bad{color:var(--red)}
+.kcard .s .why{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.kcard .tks{margin-top:auto;padding-top:4px;align-self:stretch}
+.kcard .ci{display:flex;align-items:center;gap:6px;color:var(--dim);margin-top:auto;padding-top:4px;min-width:0}
+/* a PR's CI in dots, one a job, and its count; past 12 jobs, one bar by state */
+.kcard .reds{flex:0 0 auto;white-space:nowrap;font-size:inherit;color:var(--dim)}
+.dots{display:inline-flex;gap:2px;flex:0 1 auto;min-width:0} .dots i{flex:0 0 6px;width:6px;height:6px;border-radius:50%;background:#3a4049}
+.dots i.ok,.cibar i.ok{background:var(--green2)} .dots i.run,.cibar i.run{background:var(--yellow)} .dots i.ko,.cibar i.ko{background:var(--red)}
+.cibar{display:inline-flex;width:84px;height:6px;border-radius:3px;overflow:hidden;gap:1px;background:var(--bg)} .cibar i{display:block;height:100%;background:#3a4049}
+/* the merge queue: the PR in test is itself blue, then « next », then the last exit */
+.testing .kcard{background:var(--accent-bg);border-color:#2d4a70}
+.lbl{font-size:10.5px;letter-spacing:.04em;color:var(--dim);margin:8px 0 4px}
+.out{font-size:10.5px;color:var(--grey);margin-top:6px}
+/* Delivered: merges and deployments stacked, a green line at each deployment */
+.liv .row{display:flex;gap:8px;width:100%;padding:3px 2px;border-bottom:1px solid #1d2126;font-size:11.5px}
+.liv .row:hover{background:#1a1d21}
+.liv .row .n{color:var(--dim);flex:0 0 auto} .liv .row .x{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.liv .row .tm{margin-left:auto;color:var(--grey);flex:0 0 auto;font-size:10.5px}
+.liv .dep{display:flex;align-items:center;gap:8px;width:100%;color:var(--green);font-size:10.5px;margin:6px 0 4px}
+.liv .dep::after{content:"";flex:1;border-top:1px dashed var(--green2)}
+.liv .wait{color:var(--yellow);font-size:10.5px;margin:0 0 4px}
+/* Waiting on GitHub (#1820): a column a nature, no bubble, its issues as rows split by thin lines */
+.ghplan{display:grid;gap:18px 22px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.ghplan > .st{background:none;border:0;border-radius:0;padding:0 2px}
+.ghplan > .st h3{border-bottom:1px solid var(--line);padding-bottom:6px;height:auto;margin-bottom:4px}
+.ghrow{display:block;width:100%;color:inherit;text-decoration:none;padding:6px 2px 7px;border-bottom:1px solid #23272d;font-size:11.5px}
+.ghrow:hover{background:#1a1d21}
+.ghrow .h{display:flex;gap:6px;align-items:center;color:var(--dim);min-width:0} .ghrow .h .id{color:var(--accent);font-weight:700} .ghrow .h .tm{margin-left:auto;flex:0 0 auto}
+.ghrow .h .lab{margin:0;font-size:10px;padding:0 5px}
+.star{flex:0 0 auto;line-height:1;cursor:pointer;border-radius:4px;padding:0 2px}
+.star:not(.on){opacity:0;color:var(--dim)} .kcard:hover .star, .ghrow:hover .star, .star:focus-visible{opacity:1}
+@media (hover:none){.star:not(.on){opacity:.6}}
+.starerr{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ghrow .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;margin-top:1px}
+.ghrow .s{color:var(--dim)}
+
+/* list rows */
+.li{display:flex;gap:8px;align-items:center;height:26px;padding:0 8px;border:1px solid transparent;border-radius:4px;width:100%;position:relative}
+.li:nth-child(odd){background:#1e2227}
+.li:hover{border-color:#4a525c}
+.li .num{color:var(--dim);flex:0 0 auto;width:40px;white-space:nowrap} .li .num.wide{width:auto}
+.li .meta{margin-left:auto;color:var(--dim);font-size:11px;flex:0 0 auto;padding-left:6px}
+.li.more{color:var(--accent);justify-content:center;background:none;border:1px dashed var(--line)}
+.li .mark{flex:0 0 12px}
+.sub{color:var(--dim);font-size:11px;margin:12px 0 5px} .sub:first-child{margin-top:0}
+.next{font-size:11px;color:var(--dim);margin:0 0 10px} .next b{color:var(--fg);font-weight:600} .next-why{display:block;margin-top:2px}
+.tag{font-size:10px;border:1px solid var(--line);border-radius:8px;padding:0 5px;flex:0 0 auto;color:var(--red);border-color:#5b2e30}
+
+.tks{display:flex;align-items:center;align-self:center;min-width:0}
+/* the tickets (the operator, 16/10): blocks of one size in a row that slides sideways,
+   as many as the card holds; an edge with more beyond it fades, like the latest runs */
+.tks-row{flex:1 1 auto;min-width:0;display:flex;gap:3px;padding:2px;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+.tks-row::-webkit-scrollbar{display:none}
+.tks-row.more-r{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent)}
+.tks-row.more-l{-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 44px),transparent)}
+.tks-row.more-l.more-r{-webkit-mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent)}
+.tk{flex:0 0 46px;height:26px;border-radius:4px;background:#262a30;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;gap:3px;font-size:11px}
+.tk small{font-size:9.5px;color:var(--dim)}
+.tk.done{color:var(--green2)} .tk.current{color:var(--green);border-color:var(--green);background:#1c2a1f} .tk.todo{color:var(--fg)}
+.frac{color:var(--dim);margin-left:8px;font-size:11px;flex:0 0 auto}
+
+/* the gauges, in the blue frame at the top (the operator, 30/09: it replaced the last-visit banner) */
+.frame{border:1px solid var(--accent);border-radius:6px;padding:7px 12px;margin-bottom:12px;background:var(--accent-bg);line-height:1.9}
+/* the tabs under the gauges (#839): the one shown is in the address (#factory, #trends, #quality) */
+.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.tab{padding:5px 14px;color:var(--dim);text-decoration:none;border:1px solid transparent;border-bottom:0;border-radius:6px 6px 0 0;margin-bottom:-1px}
+.tab:hover{color:var(--fg)}
+.tab.on{color:var(--fg);border-color:var(--line);background:var(--bg)}
+/* the Settings tab (#2190): opened by the gear at the top right, from any tab */
+.hdr>div:first-child{flex:1 1 0;min-width:0}
+.gear{flex:0 0 auto;font-size:17px;line-height:1;color:var(--dim);text-decoration:none;padding:2px 4px;border:1px solid transparent;border-radius:4px}
+.gear:hover,.gear.on{color:var(--fg)} .gear.on{border-color:var(--line)}
+.sets{display:grid;gap:16px;max-width:760px}
+.set{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:8px 0;border-top:1px solid var(--line);align-items:center}
+.set:first-of-type{border-top:0;padding-top:0}
+.set .in{display:flex;gap:8px;align-items:center;justify-content:flex-end;white-space:nowrap}
+.set input{width:90px;font:inherit;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:4px;padding:2px 6px;text-align:right}
+.set input:focus{outline:1px solid var(--accent);border-color:var(--accent)}
+.set .hint{grid-column:1 / -1;font-size:11px}
+.btn{color:var(--accent);border:1px solid #2d4a70;border-radius:4px;padding:1px 8px;white-space:nowrap}
+.btn:disabled{color:var(--dim);border-color:var(--line);cursor:default}
+.set input[type=checkbox]{width:auto;accent-color:var(--accent);transform:scale(1.3)}
+.paused{border:1px solid var(--yellow);color:var(--yellow);border-radius:6px;padding:6px 12px;margin-bottom:12px}
+.sets .foot{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
+@media (max-width:759px){.set{grid-template-columns:minmax(0,1fr)}.set .in{justify-content:flex-start}.set input{font-size:16px}}
+/* the Trends curves (#839): inline SVG, no library. Series: blue then orange, in that order;
+   CI: status green ✓ / red ✗, never the color alone. Text stays in text colors. */
+.charts{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+/* three columns from 1140 px — the plan's own step to three —, one below (#2048: at 760 px a third is
+   200 px, its titles cut); a chart is drawn as wide as its column: its text stays 10 px */
+@media (min-width:1140px){.charts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .say{font-size:11.5px;margin:0 0 6px}
+.chart .legend{display:flex;gap:14px;font-size:11px;color:var(--dim);margin-bottom:4px}
+.chart .sw{display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .axis{fill:var(--dim);font-size:10px;font-family:var(--mono)} .chart .axis.pct{fill:#3987e5}
+.chart .limit{stroke:var(--grey);stroke-width:1;stroke-dasharray:3 3}
+.chart .nowline{stroke:var(--dim);stroke-width:1;stroke-dasharray:2 3;opacity:.6}
+.mesh .dim{font-weight:400;letter-spacing:0;margin-left:8px}
+.chart .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .proj{fill:none;stroke-width:2;stroke-dasharray:5 4;opacity:.8}
+.s1{stroke:#3987e5;background:#3987e5} .s2{stroke:#d95926;background:#d95926}
+.ci-ok{fill:#0ca30c;background:#0ca30c} .ci-ko{fill:#d03b3b;background:#d03b3b}
+.kbar{display:flex;height:10px;border-radius:3px;overflow:hidden;margin:2px 0 8px;background:var(--line)} .kbar span{display:block;height:100%}
+.k1{fill:#3987e5;background:#3987e5} .k2{fill:#d95926;background:#d95926} .k3{fill:#6b7a8c;background:#6b7a8c} .k4{fill:#2fa36b;background:#2fa36b}
+/* the vertical cursor (#2050): its line, a dot per curve, the column lit, and its label beside it */
+.plot{position:relative}
+.chart svg[data-chart]{touch-action:pan-y;cursor:crosshair;outline:none;border-radius:4px}
+.chart svg[data-chart]:focus-visible{box-shadow:0 0 0 1px var(--accent)}
+.chart .xline{stroke:var(--fg);stroke-opacity:.55;stroke-width:1}
+.chart .xband{fill:var(--fg);fill-opacity:.07}
+.chart .xdot{stroke:var(--card);stroke-width:1.5}
+.xdot.s1{fill:#3987e5} .xdot.s2{fill:#d95926}
+.xtag{position:absolute;top:0;z-index:5;pointer-events:none;background:#16191d;border:1px solid var(--line);border-radius:6px;padding:5px 9px;box-shadow:0 8px 24px #000a;font-size:11px;line-height:1.5;width:max-content;max-width:min(240px,45%)}
+.xtag .xt{color:var(--dim)} .xtag dl{display:grid;grid-template-columns:auto auto;gap:0 12px;margin:2px 0 0}
+.xtag dt{white-space:nowrap} .xtag dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+/* Quality (#840): one tile per indicator, then the curves and the flaky tests */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin-bottom:16px}
+.tile{min-height:96px;width:100%}
+/* Measures (#1821): the span chosen, then a heading a section */
+.spans{display:flex;gap:4px;margin:0 0 12px} .spans button{border:1px solid var(--line);border-radius:4px;padding:1px 9px;color:var(--dim)}
+.spans button.on{color:var(--fg);border-color:var(--accent)}
+.mesh{font-size:11px;letter-spacing:.09em;color:var(--dim);font-weight:600;margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+button.tile:hover{border-color:#4a525c}
+.tile .big{font-size:17px;font-weight:700;margin:2px 0 4px}
+.tile .dim{font-size:11px}
+.rank{width:100%;border-collapse:collapse;table-layout:fixed}
+.rank th{color:var(--dim);font-weight:400;text-align:left;font-size:11px;padding:0 8px 6px 0}
+.rank th:nth-child(2){width:60px} .rank th:nth-child(3){width:130px} .rank th:nth-child(4){width:32%}
+.rank td{padding:5px 8px 5px 0;border-top:1px solid var(--line);vertical-align:top}
+@media (max-width:759px){.rank,.rank tbody{display:block}.rank tr:first-child{display:none}
+  .rank tr{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;border-top:1px solid var(--line);padding:6px 0}
+  .rank td{border:0;padding:0}.rank td:first-child,.rank td:last-child{grid-column:1/-1}
+  .rank td.tt{white-space:normal;overflow-wrap:anywhere}.rank td:nth-child(2)::after{content:" failures";color:var(--dim)}}
+.li.new .num{color:var(--accent)}
+.li.new::before{content:"";position:absolute;left:-1px;top:5px;bottom:5px;width:2px;border-radius:2px;background:var(--accent)}
+.tk.new{outline:1px solid var(--accent);outline-offset:1px}
+
+/* side panel */
+#panel{visibility:hidden;position:fixed;top:0;right:0;bottom:0;width:460px;max-width:100%;background:#16191d;border-left:1px solid var(--line);transform:translateX(105%);z-index:50;overflow:auto;padding:calc(16px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) 18px;box-shadow:-12px 0 30px #000a}
+#panel.open{transform:none;visibility:visible}
+@media (max-width:759px){#panel{width:100%;border-left:0}}
+#panel .x{position:absolute;top:calc(10px + env(safe-area-inset-top));right:14px;color:var(--dim);font-size:15px}
+#panel h2{font-size:14px;margin:4px 30px 8px 0;line-height:1.35}
+#panel .sec{color:var(--dim);margin:16px 0 6px}
+/* the section of the card's column, first and framed in blue (#1819) */
+#panel .focus{border:1px solid #2d4a70;border-radius:8px;padding:10px 12px;margin:12px 0 4px}
+#panel .focus > .sec{margin-top:0;color:var(--accent)}
+#panel .excerpt{white-space:pre-wrap;word-break:break-word;margin:0;font:inherit;color:var(--fg)}
+#panel .gh{display:inline-block;margin:18px 8px 0 0;color:var(--accent);text-decoration:none;border:1px solid #2d4a70;border-radius:4px;padding:4px 10px}
+#panel dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:8px 0}
+.lab{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:0 6px;margin:0 4px 2px 0;font-size:11px;color:var(--dim)}
+#panel dt{color:var(--dim)} #panel dd{margin:0;min-width:0;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div id="app"><div class="live">loading…</div></div>
+<div id="tip" role="tooltip" hidden></div>
+<aside id="panel" aria-label="detail"><button class="x" data-close aria-label="Close">✕</button><div class="body"></div></aside>
+
+<script>
+'use strict';
+/* text:begin — every word the page shows, in one place (#850): another
+   language plugs in here without searching the code. Numbers and dates are
+   English too: 1,520 · 1.2 M · Sep 30 14:05 · 3 d 5 h. */
+const TXT = {
+  level: { gap: (asked, seen) => `${asked} asked — ≠ ${seen} sent`, seenOnly: seen => `${seen} sent (asked unknown)`,
+    notSeen: (asked, seen) => `${asked} asked (sent: ${seen})`, label: 'label', byDefault: 'default',
+    tip: 'Asked: what tracerworks passed at the worker\'s last start (its spec\'s label, or the default). Sent: what its session\'s log says it really asked the API. Red: they differ.' },
+  loading: 'loading…', tokens: n => `${n} tokens`, unknown: 'unknown', unreadable: 'unreadable', none: 'none', 
+  ago: s => `${s} ago`, inSpan: s => `in ${s}`, yesterday: 'yesterday',
+  months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  /* the header, its live line and its gauges */
+  factory: 'factory', refresh: 'Refresh', refreshTitle: 'Refresh: ask for a new snapshot now',
+  snapshotUnreadable: e => `snapshot unreadable: ${e}`, firstBuilding: ' — first snapshot being prepared',
+  refreshFailed: e => `✗ last refresh failed (${e})`, rebuildFailed: e => `✗ last rebuild failed (${e})`,
+  githubUnreadable: '✗ GitHub unreadable: issues unknown', updating: '⟳ updating…', updatingShort: ' — updating…',
+  remembered: age => `data from ${age}`, live: (age, next) => `snapshot ${age} · 60 s cycle${next}`, nextIn: s => ` · next in ${s} s`,
+  tip: { used: 'Used', taken: 'Taken', free: 'Free', busy: 'Busy', threshold: 'Threshold', resets: 'Resets',
+    projected: 'Projected', slope: 'Slope', read: 'Read', why: 'Unknown', total: 'Total', previous: 'Previous window',
+    cleanup: 'Last clean-up', notCleaned: 'Not cleaned' },
+  cleanupSaid: (at, c) => `${at} UTC · ${c.removed ?? 0} containers, ${c.processes ?? 0} processes, ${c.worktrees ?? 0} worktrees, ${c.freed ?? 0} MB freed`,
+  noCleanup: 'no pass read (tools/container_reaper.py, ~/vps-reaper.log)',
+  newWindow: t => `new window since ${t} · no reading yet`, staleWindow: t => `no reading since the reset at ${t}`, around: t => `around ${t}`, percentAt: (p, t) => `${p}% at ${t}`,
+  noWorkerReads: "no worker running — the quota is read by the workers' status line",
+  noAnswerYet: "no worker has answered since — the quota is read by the workers' status line",
+  turnsYellow: p => `${p}% (turns yellow)`, noNewWorker: p => `${p}% (no new worker above)`, alertAt: p => `${p}% (alert)`,
+  projectedPercent: p => `≈ ${p}% at the reset`,
+  /* the slope of the last rolling days (#864); less history than them: its span */
+  lastDays: s => (s.days >= s.window_days ? `last ${s.window_days} days`
+    : `last ${s.days < 1 ? `${Math.max(1, Math.round(s.days * 24))} h` : `${s.days.toFixed(1)} days`} (all the history there is)`)
+    + (s.half_life_days ? `, exponentially weighted (half-life ${+s.half_life_days.toFixed(1)} days)` : ''),
+  slope: (perDay, s) => `at the pace of the ${TXT.lastDays(s)}: ${perDay}/day`,
+  projectedMinutes: (m, over) => `≈ ${m} min at the end of the month${over ? ' — over the plan' : ''}`,
+  minutesOf: (used, included, pct) => `${used} of ${included} min (${pct}%)`,
+  cpuWhy: 'measured by the serve service, one minute after it starts', cpuBusy: p => `${p}% over the last minute`,
+  ofGb: (used, total) => `${used} of ${total} GB`, gb: 'GB', declared: p => ` — declared: ${p}%`,
+  gauge: { ram: 'RAM', cpu: 'CPU', disk: 'disk', fiveHours: 'Claude 5h', week: 'Claude week', actions: 'Actions' },
+  includedMinutes: n => `${n} min included in the plan`,
+  tabs: { usine: 'Factory', mesures: 'Measures', github: 'Waiting on GitHub' },
+  /* the Settings tab (#2190) */
+  settings: { title: 'Settings', save: 'Save', saving: 'saving…', saved: 'saved', reset: 'Default value',
+    resetTip: 'Back to the default: the key leaves the state file', unchanged: 'nothing changed',
+    defaultIs: v => `default ${v}`, on: 'on', off: 'off', atOnce: 'saved at once',
+    paused: 'Queue paused: start-next starts nothing; the workers running go on.', from: (a, b) => `from ${a} to ${b}`, atLeast: a => `at least ${a}`,
+    set: 'set by the state file', byDefault: 'the default', notWhole: label => `${label}: a whole number`,
+    refused: e => `✗ not saved: ${e}`,
+    note: 'Written to the operator\'s state file, beside what tracerworks quota and tracerworks provider write; in force at once, no restart. Not here, a PR still: the workers\' provider (tracerworks provider), their memory cap, their permissions and primer rules, the waits.' },
+  /* the Factory kanban (#1824) */
+  kanban: { cols: { queue: 'QUEUE', dev: 'IN DEVELOPMENT', check: 'LIGHT CHECK', mq: 'MERGE QUEUE', livre: 'DELIVERED · 48 H' },
+    devHint: (n, limit, max, busy, working) => `${n ?? '?'}/${limit ?? '?'} in flight · ${working ?? '?'} working · ${busy ?? '?'}/${max ?? '?'} sessions occupied`, sessionOccupied: 'session occupied', checkHint: 'the CI of each push',
+    startsNext: 'starts at the next pass', waitsPlace: n => `waits for a place: ${n} in flight, the limit reached`,
+    waitsSession: (n, max) => `waits for a session: ${n}/${max} busy`,
+    placeWait: (rank, span) => `waits for a place · ${rank} · ${span}`,
+    placeWaitTip: 'its start was refused for want of a place: it comes back before any new spec',
+    mqHint: 'one PR at a time, its full suite', livreHint: 'merged into main, and the deployments',
+    tone: { you: 'waits for you', bad: 'blocked' },
+    reds: (n, before) => `✗ ${n} red${n === 1 ? '' : 's'}${before ? ' before' : ''}`,
+    redNoWorker: 'CI red, no worker', redUnheld: 'CI red, nobody on it',
+    lowMemory: (time, top) => `memory low for ${time}${top ? `: ${top}` : ''}`,
+    redAtRest: (rest, span) => `CI red, its worker ${rest} for ${span}`, atRest: 'at rest', stopped: 'stopped',
+    calm: 'NOTHING FOR YOU TO DO', calmWhy: 'no question, no red to fix, the machine holds', needs: n => `NEEDS YOU · ${n}`,
+    offline: 'runner off line', prsUnknown: 'pull requests unknown (GitHub unreadable)', runnersUnknown: 'runners unknown (GitHub unreadable)',
+    jobsUnknown: 'waiting jobs unknown', jobsWait: n => `${n} job${n > 1 ? 's wait' : ' waits'} for a runner`, noJobWaits: 'no job waits for a runner',
+    runsTip: 'the 30 latest runs, the newest on the left', rankTip: "its rank in the factory's order", noWorker: 'no worker',
+    noneInTest: 'none in test', next: 'next', mqUnknown: 'merge queue unknown (history base unreadable)',
+    lastOut: (n, how) => `last out: #${n} ${how}`, outcome: { merged: 'merged', sent_back: 'sent back to its worker', gone: 'withdrawn' },
+    notInProd: n => `${n} not in prod yet`, deployed: 'deployed', older: n => `${n} older (48 h)` },
+  setAsideFor: n => n ? `set aside for #${n}` : 'set aside by hand',
+  state: { active: 'active', ci: 'waiting for CI', blocked: 'blocked', asking: 'blocked — permission', done: 'done', idle: 'idle', stopped: 'stopped', dead: 'dead', parked: 'parked (CI)' },
+  ticket: { done: 'closed', current: 'in progress', todo: 'to do' },
+  ticketsUnknown: 'tickets unknown (GitHub unreadable)', ticketsNotYet: 'tickets not created yet',
+  deduced: '(deduced)', declaredTicket: '(declared)', 
+  needsHumanUnreadable: 'needs-human (comment unreadable)', titleUnknown: '(title unknown)', 
+  priority: '▲ priority', starredTip: 'starred: your pick — not an order of the queue · click to remove', starTip: 'star it: your pick — not an order of the queue', starFailed: e => `✗ star not saved: ${e}`, postUnknown: '✗ unknown: GitHub unreadable',
+  natures: { specs: 'Specs ready', bugs: 'Bugs', tasks: 'Tasks', ideas: 'Ideas', to_sort: 'To sort' }, openTickets: n => `${n} ticket${n > 1 ? 's' : ''}`,
+  waitsLaunch: 'a tranche merged, its PR closed — the next one waits for to-launch (#1926)',
+  natureHints: { specs: 'to launch on your word', bugs: 'something broken', tasks: 'measures, settings, clean-ups', ideas: 'not asked for yet', to_sort: 'no nature: to label' },
+  noTicket: 'no ticket', waitingUnknown: '✗ unknown: GitHub unreadable',
+  nextStart: 'next start:', startsIn: s => `in ${s}`, startsNow: 'now', queueEmpty: 'queue empty',
+  nextStartTip: 'when the queue relauncher next runs start-next — in this browser\'s time zone',
+  ci: { running: 'CI running', queued: 'waiting for a runner', success: 'CI green', failure: 'CI red', none: 'no CI', merged: 'merged' },
+  autoMerge: on => `auto-merge ${on ? 'set ✓' : 'not set ✗'}`, noSpec: 'outside any spec',
+  free: 'free', busy: 'busy', busyUnreadable: 'busy (job unreadable)',
+  run: { success: 'success', failure: 'failure' },
+  jobsWaiting: 'Jobs waiting for a runner',
+  nothingDelivered: 'nothing delivered lately',
+  where: { atelier: 'in the workshop', waiting: 'waiting (not launched yet)', queue: 'in the queue' },
+  /* the side panel */
+  panel: { col: { queue: 'QUEUE', dev: 'IN DEVELOPMENT', check: 'LIGHT CHECK', mq: 'MERGE QUEUE' },
+    sec: { work: 'WORK IN PROGRESS', tickets: 'TICKETS', ci: 'PR AND CI', mq: 'MERGE QUEUE', story: 'ITS STORY', spec: 'THE SPEC' },
+    notStarted: 'not started yet', noPr: 'no pull request yet', noStory: 'no change of state recorded yet',
+    mq: { out: 'not in the merge queue', testing: 'in test: its full suite runs',
+      waiting: (place, ahead, testing) => `${place} in line: tested after ${ahead ? `the ${ahead} PR${ahead > 1 ? 's' : ''} ahead` : ''}${ahead && testing ? ' and ' : ''}${testing ? 'the PR in test' : ahead ? '' : 'nothing — next to be tested'}`,
+      reused: sha => ` — entered on the light lane of ${sha.slice(0, 8)} (same code diff)`,
+      cancelled: url => ` — ${(run => run ? `its run ${run}` : 'a run of its')(url.split('/').pop())} cancelled: the queue reruns everything at its turn` } },
+  detail: 'detail', close: 'Close', excerptUnreadable: '(unreadable: GitHub did not answer)', emptyBody: '(empty body)',
+  spec: w => `SPEC · ${w}`, ticketKind: 'TICKET', pullRequest: 'PULL REQUEST',
+  jobKind: 'JOB WAITING FOR A RUNNER', runnerKind: 'RUNNER', runKind: w => `RUN · ${w}`, deliveredKind: w => `DELIVERED · ${w}`,
+  dt: { ticket: 'ticket', why: 'why', branch: 'branch', since: 'since', tokens: 'tokens', activity: 'activity', state: 'state', level: 'model · effort',
+    spec: 'spec', ci: 'CI', waiting: 'waiting', runners: 'runners', autoMerge: 'auto-merge', for: 'for', job: 'job',
+    result: 'result', duration: 'duration', finished: 'finished',
+    specToPr: 'spec → PR', prToMerge: 'PR → merged', mergeToProd: 'merged → prod', specToProd: 'spec → prod',
+    runs: 'CI runs', ciMinutes: 'CI minutes', failedTests: 'failed tests', files: 'files', lines: 'lines', closedIssues: 'issues closed' },
+  statsTokens: '── tokens of its spec (sub-agents included) ──', statsTimes: '── times ──', statsCi: '── CI ──', statsSize: '── size ──',
+  tokensOfSpec: 'Tokens of its spec', greenAtOnce: '✓ green at first try', notGreenAtOnce: '✗ not green at first try',
+  statsUnreadable: e => `✗ figures unreadable: ${e}`, notRecorded: 'not in the history base yet: figures unknown',
+  forSpan: d => ` · for ${d}`, mergedStop: '── its PR is merged: stop this worker ──', runOnVps: 'to run on the VPS (the page does nothing):',
+  specStart: '── start of the spec ──', ticketStart: '── start of the ticket ──', ticketsSec: '── tickets ──', jobsSec: '── jobs ──', jobsUnknown: 'jobs unreadable',
+  jobState: { waiting: 'waiting', running: 'running', success: 'green', failure: 'red', skipped: 'skipped', cancelled: 'cancelled' },
+  machine: { vps: 'VPS', github: 'GitHub' }, minutesOf1: m => `${m} min`, mb: n => `${n} MB`,
+  currentDeclared: 'in progress (label set by the worker)', currentDeduced: 'in progress (deduced — no label)',
+  open: { spec: 'Open the spec on GitHub', ticket: 'Open the ticket on GitHub', pr: 'Open the PR on GitHub', ci: 'Open CI', job: 'Open the job on GitHub',
+    actions: 'Open Actions on GitHub', run: 'Open the run on GitHub', deploy: 'Open the deployment on GitHub' },
+  specs: n => `${n} spec${n > 1 ? 's' : ''}`, notInProd: 'not in prod',
+  fullList: 'FULL LIST',
+  /* the curves */
+  noData: 'no data yet', atThisPace: n => `${n} at this pace`, projection: 'projection', 
+  loadingTab: l => `loading the ${l}…`, tabUnreadable: (l, e) => `✗ ${l} unreadable: ${e}`,
+  week: 'week', alertLine: p => `alert ${p}%`,
+  /* the quota periods in progress (#2048, Trends' before #1821) */
+  claudeTitle: 'CLAUDE QUOTA · THE WEEK', claudeUnknown: 'unknown: no status line reading for the current week',
+  weekNoSlope: 'projection: no rise read over the last days yet', weekPace: (p, s) => `at the pace of the ${TXT.lastDays(s)}, end of week ≈ <b>${p}%</b>`,
+  exhausted: '✗ quota used up before the reset',
+  actionsTitle: 'ACTIONS MINUTES · THE MONTH', actionsUnknown: 'unknown: no billing reading this month',
+  monthNoSlope: 'projection: no CI job in the history yet', monthPace: (m, inc, s) => `at the pace of the ${TXT.lastDays(s)}, end of month ≈ <b>${m} min</b> for ${inc} included`,
+  overrun: '▲ over the plan', included: n => `included ${n}`, minutes: 'minutes',
+  /* the machine's hours (#2051, Trends' before #1821) */
+  memoryTitle: 'AVAILABLE MEMORY · 7 DAYS', cpuTitle: 'CPU · 7 DAYS', diskTitle: 'DISK · 7 DAYS', hourMean: '(hourly mean)',
+  kinds: ['input', 'cache written', 'cache read', 'output'],
+  /* Measures (#1821) */
+  measures: { label: 'measures', days: n => `${n} days`, noData: 'no data', perDay: '/day',
+    waitSub: 'worker-hours a day, every worker summed: CI, memory, permission, question', costSub: 'tokens of a spec finished (one PR each), median of the days',
+    firstGreenSub: 'merged PRs whose CI was green at once', oomSub: n => `runners, of ${n} units killed`,
+    test: 'a test', machine: 'the machine', memory: 'memory', permission: 'permission', question: 'question', mean: 'mean', runners: 'runners',
+    otherUnits: 'other units', nudgeWorker: 'worker nudged', nudgeCi: 'CI started again', nudgeMachine: "machine's red re-run",
+    redCauseSay: "a red whose failed jobs name no failed test is the machine's (#1792); a log not read yet counts for neither",
+    runnerWaitSay: 'median wait of a VPS job before its runner, in minutes — and of the merge queue\'s jobs alone (#2111)',
+    queueJobs: 'merge queue\'s jobs', runnerBusySay: 'share of the day each runner ran a job (today: of the part gone)',
+    perPrSay: 'CI runs per pull request that ran one that day',
+    firstGreenSay: "% of the day's merged PRs green at their first CI", costSay: 'tokens of a spec finished that day (one PR each), in millions',
+    oomSay: "units of the session the OOM killer failed (its journal, read every 15 min)",
+    inSpan: (n, d) => `${n} in ${d} d`, inDays: d => `in ${d} d`, p90: v => `p90 ${v} min · pull requests`, prsOnly: 'pull requests',
+    redOf: (r, n) => `${r} of ${n} runs`, median: 'median', nightsSub: 'green nights (dispatch on main)', lowReadings: n => `${n} readings under 1.5 GB`,
+    peak: 'peak', cores: n => `${n} cores`, workers: 'workers', factory: 'factory', containers: 'containers', rest: 'rest',
+    loadSay: 'load average over 5 min, read every 5 min; above the line, more running than cores (#2280)',
+    cpuSay: 'share of the whole machine each consumer used, the mean of the 5-minute readings that read them all; the line: the day\'s CPU',
+    cpuUse: 'CPU used',
+    lowest: 'lowest', highest: 'highest', green: 'green', red: 'red', other: 'cancelled, skipped', greenShare: 'green share, 3 d',
+    nightSay: "the night's full suite on main: its duration", ticketsSay: 'issues closed by the merged pull requests',
+    queueTime: 'time in the queue (median)', sentBack: 'sent back', alertsSent: 'alerts sent', lowReadingsName: 'readings under 1.5 GB',
+    tile: { merged: 'PULL REQUESTS MERGED', deploys: 'DEPLOYMENTS', tickets: 'TICKETS CLOSED', ciDuration: 'CI DURATION (MEDIAN)', red: 'RED CI',
+      lead: 'PR OPENED → MERGED', nights: 'NIGHT SUITES', memory: 'LOWEST FREE MEMORY', wait: 'WORKERS WAITING', cost: 'COST PER PR',
+      firstGreen: 'GREEN AT FIRST TRY', oom: 'RUNNERS KILLED (OOM)' },
+    quotasSub: 'the Claude week and the Actions month in progress, whatever the span',
+    machineSub: 'the last 7 days, hour by hour, whatever the span; then one point a day',
+    sec: { quotas: 'QUOTAS', ci: 'CI', delivery: 'DELIVERY', workers: 'WORKERS', machine: 'MACHINE', quality: 'KEPT FROM QUALITY' },
+    chart: { runs: 'CI RUNS PER DAY', duration: 'CI DURATION PER DAY', night: 'NIGHT SUITE', redCause: 'REDS BY CAUSE', runnerWait: 'WAITING FOR A RUNNER',
+      runnerBusy: 'RUNNERS BUSY', perPr: 'CI RUNS PER PULL REQUEST', merged: 'PULL REQUESTS MERGED PER DAY', deploys: 'DEPLOYMENTS PER DAY', lead: 'PR OPENED → MERGED',
+      tickets: 'TICKETS CLOSED PER DAY', queue: 'MERGE QUEUE', tokens: 'TOKENS PER DAY', quota: 'CLAUDE WEEK QUOTA, HIGHEST OF THE DAY',
+      wait: 'TIME WAITING, BY CAUSE', cost: 'COST PER PR', nudges: 'AUTOMATIC RELAUNCHES', firstGreen: 'GREEN AT FIRST TRY', memory: 'FREE MEMORY, LOWEST OF THE DAY',
+      alerts: 'ALERTS', disk: 'DISK, HIGHEST OF THE DAY', oom: 'RUNNERS KILLED (OOM)', load: 'VPS LOAD, MEDIAN AND PEAK OF THE DAY',
+      cpu: 'CPU BY CONSUMER, MEAN OF THE DAY' } },
+  /* Quality */
+  rule: { 'même commit': 'fails then passes on the same commit', '2 PR': 'fails on 2 PRs in 7 d without touching its module' },
+  flakyHead: ['test', 'failures', 'last failure', 'why'],
+  noFlaky: 'no flaky test by the definition (same commit, or 2 PRs in 7 d without touching its module)',
+  stillOpen: ' · open', sent: 'sent', silenced: 'not sent', notSentYet: 'not sent yet', noAlert: 'no alert in 30 d',
+  alertsSection: 'ALERTS · 30 D', flakySection: 'FLAKY TESTS RANKING',
+};
+/* text:end */
+/* the stars clicked, until the snapshot says them (#1877) */
+const STARS = {};
+let DATA = null, FETCHED = 0, FAILED = null, LOADING = false, NEXT = null, NEXT_AT = 0, REMEMBERED = false;
+/* The last snapshot received, kept in THIS browser: the page opens on it at
+   once, marked with its age, and the fresh one replaces it without a flash (#820). */
+const SNAPSHOT_KEY = 'tracerworks.dashboard.snapshot';
+/* The last visit lives in THIS browser only (the server keeps nothing): it is
+   written when the page is left, so the mark stays put while it is looked at. */
+const VISIT_KEY = 'tracerworks.dashboard.lastVisit';
+const lastVisit = () => Number(localStorage.getItem(VISIT_KEY)) || Date.now() / 1000 - 24 * 3600;
+let BASELINE = lastVisit();
+const isNew = t => t != null && t > BASELINE;
+addEventListener('pagehide', () => localStorage.setItem(VISIT_KEY, String(Date.now() / 1000)));
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let REG = {}, regN = 0;  // what a click opens, by id; the open panel's ids outlive a refresh
+const reg = o => { const id = 'i' + (regN++); REG[id] = o; return id; };
+const now = () => Date.now() / 1000;
+const ago = t => t == null ? '?' : (s => TXT.ago(s < 60 ? `${Math.floor(s)} s` : duration(s)))(Math.max(0, now() - t));
+const bar = (pct, n = 10) => { const k = Math.max(0, Math.min(n, Math.round(pct / 100 * n))); return '█'.repeat(k) + '░'.repeat(n - k); };
+const issueUrl = n => `https://github.com/${DATA.repo}/issues/${n}`;
+const gh = (url, label) => `<a class="gh" href="${esc(url)}" target="_blank" rel="noopener noreferrer">↗ ${esc(label)}</a>`;
+
+/* state:begin — a worker's state as its card says it; set aside (#1269): for whom */
+/* « blocked » only for a worker that asked the operator (needs-human, #830). */
+const STATE = Object.fromEntries(Object.entries({ active: '●', ci: '◌', blocked: '■', asking: '■', done: '✓', idle: '◇', stopped: '○', dead: '✗', parked: '◌' }).map(([k, g]) => [k, [g, TXT.state[k]]]));
+/* One state per chantier (#1729): the snapshot's `phase_text`, the words of
+   `tracerworks status`, glyph and colour by its phase; the old reading without it. */
+const PHASE = { queued: ['○', 'idle'], development: ['●', 'active'], light_check: ['◌', 'ci'], merge_queue: ['◎', 'ci'],
+  human: ['■', 'blocked'], blocked: ['■', 'dead'], parked: ['◐', 'parked'], done: ['✓', 'done'] };
+const stateOf = w => w.phase && PHASE[w.phase]
+  ? `<span class="st-${PHASE[w.phase][1]}">${PHASE[w.phase][0]} ${esc(w.phase_text)}</span>`
+  : w.role === 'set_aside'
+  ? `<span class="st-parked">◐ ${esc(TXT.setAsideFor(w.set_aside && w.set_aside.for))}</span>`
+  : `<span class="st-${esc(w.state)}">${(STATE[w.state] || ['?', w.state])[0]} ${esc((STATE[w.state] || ['?', w.state])[1])}</span>`;
+/* state:end */
+const GLYPH = { done: '✓', current: '●', todo: '○' };
+const TICKET_TXT = TXT.ticket;
+
+/* ---------- the kanban holds in the window, its cards of one height ---------- */
+/* In five columns the plan goes down to the window's bottom (#1279), each column scrolling on its own. */
+function fitPlan() {
+  const plan = $('.plan');
+  const fit = Boolean(plan) && getComputedStyle(plan).gridTemplateColumns.split(' ').length === 5;
+  document.body.classList.toggle('fitmode', fit);
+  if (plan) plan.style.height = fit ? Math.max(560, innerHeight - (plan.getBoundingClientRect().top + scrollY) - 18) + 'px' : '';
+}
+/* Cards of one height in a column; Light check and Merge queue share theirs (the operator, 25/10). Measured at each render. */
+function evenCards() {
+  const cards = col => [...document.querySelectorAll(`.plan > [data-st=${col}] .kcard`)];
+  for (const group of [cards('queue'), cards('dev'), [...cards('check'), ...cards('mq')]]) {
+    group.forEach(c => { c.style.minHeight = ''; });
+    const h = Math.max(0, ...group.map(c => c.offsetHeight));
+    group.forEach(c => { c.style.minHeight = h + 'px'; });
+  }
+}
+
+/* ---------- the Atelier ---------- */
+function ticketBlocks(w) {
+  if (w.tickets === null) return `<span class="dim">${TXT.ticketsUnknown}</span>`;
+  if (!w.tickets.length) return `<span class="dim">${TXT.ticketsNotYet}</span>`;
+  return `<div class="tks"><div class="tks-row">${w.tickets.map(t => `<button class="tk ${esc(t.status)} ${isNew(t.closed_at) ? 'new' : ''}" data-key="t${t.number}" data-open="${reg({ kind: 'ticket', t, w })}" title="#${t.number} ${esc(t.title)} — ${TICKET_TXT[t.status]}">${GLYPH[t.status]}<small>${t.number}</small></button>`).join('')}</div><span class="frac">${w.done}/${w.total}</span></div>`;
+}
+/* tkrow:begin — a card's row of tickets (the operator, 16/10). When the ticket worked
+   on changes (the current one, else the first to do), the row slides to put it
+   in the middle, held at the edges; between two changes, the row stays where
+   the hand left it. An edge with more beyond it fades. Run by `dashboard.test.mjs`. */
+const edgeFade = row => {
+  row.classList.toggle('more-l', row.scrollLeft > 1);
+  row.classList.toggle('more-r', row.scrollLeft + row.clientWidth < row.scrollWidth - 1);
+};
+const CENTRED = new WeakMap();
+function fitTickets(row) {
+  const at = row.querySelector('.tk.current') || row.querySelector('.tk.todo');
+  const key = at ? at.dataset.key : '';
+  if (at && CENTRED.get(row) !== key) {
+    const r = row.getBoundingClientRect(), t = at.getBoundingClientRect();
+    row.scrollLeft = Math.max(0, Math.min(row.scrollWidth - row.clientWidth, row.scrollLeft + (t.left + t.width / 2) - (r.left + r.width / 2)));
+  }
+  CENTRED.set(row, key);
+  edgeFade(row);
+}
+/* tkrow:end */
+document.addEventListener('scroll', e => { if (e.target instanceof Element && e.target.matches('.tks-row')) edgeFade(e.target); }, true);
+const why = w => w.state === 'asking' ? `⚑ ${esc(w.asking || '?')}` : !w.blocked_by ? '' : `⚑ #${w.blocked_by.number} : ${esc(w.blocked_by.reason ?? TXT.needsHumanUnreadable)}`;
+const unknownPost = `<div class="r">${TXT.postUnknown}</div>`;
+
+/* kanban:begin — the Factory tab as a light kanban (#1824): which column a
+   chantier sits in, what its card says, what the banner lists, how a PR's CI
+   reads and how Delivered stacks. Every state is snapshot.py's: this only
+   sorts and words it. Pure but for TXT and esc, run by `dashboard.test.mjs`. */
+/* A chantier with a worker, by its phase; the queue is the snapshot's own list. */
+const columnOf = w => w.phase === 'light_check' ? 'check' : w.phase === 'merge_queue' ? 'mq' : 'dev';
+/* Its card's edge: green while its worker works (the word is not written), violet when it waits for the operator, red when blocked. */
+const toneOf = w => w.state === 'asking' || w.blocked_by || w.phase === 'human' ? 'you'
+  : w.phase === 'blocked' || w.state === 'dead' ? 'bad'
+  : w.state === 'active' && columnOf(w) === 'dev' ? 'work' : '';
+const cleanTitle = t => String(t ?? TXT.titleUnknown).replace(/^Spec\s*—\s*/, '');
+/* What it waits for, in plain text: the question, the needs-human issue, else the phase's reason. */
+const reasonOf = w => w.state === 'asking' ? `⚑ ${w.asking || '?'}`
+  : w.blocked_by ? `⚑ #${w.blocked_by.number} : ${w.blocked_by.reason ?? TXT.needsHumanUnreadable}` : w.phase_reason || '';
+/* Its state line, only in development (the ticket worked on) or when something is wrong: elsewhere the column says it. */
+function statusLine(w) {
+  const tone = toneOf(w);
+  if (tone === 'you' || tone === 'bad') return { word: TXT.kanban.tone[tone], tone, why: reasonOf(w) };
+  if (w.session_occupied && (columnOf(w) !== 'dev' || (w.state !== 'active' && w.session_hold_reason)))
+    return { word: TXT.kanban.sessionOccupied, tone: '', why: w.session_hold_reason || '' };
+  if (columnOf(w) !== 'dev') return null;
+  const c = w.current_ticket;
+  if (tone === 'work') return { word: '', tone, why: c ? `#${c.number} ${c.title}` : w.phase_reason || '' };
+  return { word: '', tone, why: w.phase_text || TXT.state[w.state] || w.state || '' };
+}
+/* Why a PR's red CI waits for the operator (#2057), else nothing: nobody holds it (snapshot.py's `red_owner`) and
+   it has no worker, or its worker rests past `[waits] red_unowned_minutes` — unless the banner already says
+   that worker (a question, a death). A red its worker fixes is the ordinary state of a chantier. */
+const minutesText = m => m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`;
+function redWhy(p, data, listed) {
+  if (p.ci !== 'failure' || p.red_owner) return '';
+  const w = data.workers.find(x => x.pull_request && x.pull_request.number === p.number);
+  if (!w) return TXT.kanban.redNoWorker;
+  if (listed.some(n => n.key === `w${w.spec}`)) return '';
+  if (p.red_unowned_since == null) return TXT.kanban.redUnheld;  // its red's end unread: never taken for calm
+  const m = Math.floor(Math.max(0, data.generated_at - p.red_unowned_since) / 60);
+  if (m < data.red_unowned_minutes) return '';
+  return TXT.kanban.redAtRest(w.state === 'stopped' ? TXT.kanban.stopped : TXT.kanban.atRest, minutesText(m));
+}
+/* The banner: what needs the operator, one line each — a question, a needs-human, a blocked worker, a red CI, a
+   runner off line; GitHub unreadable is said, never taken for calm. Empty: nothing for him to do. */
+function needsOf(data) {
+  const out = [], c = data.control;
+  data.workers.forEach(w => { const tone = toneOf(w);
+    if (tone === 'you' || tone === 'bad') out.push({ key: `w${w.spec}`, num: `#${w.spec}`, title: cleanTitle(w.title), why: reasonOf(w) || TXT.kanban.tone[tone], tone, open: { kind: 'work', spec: w.spec, col: columnOf(w) } }); });
+  if (c.pull_requests === null) out.push({ key: 'prs', num: 'GitHub', title: '', why: TXT.kanban.prsUnknown, tone: 'bad', open: null });
+  (c.pull_requests || []).forEach(p => { const why = redWhy(p, data, out);
+    if (why) out.push({ key: `p${p.number}`, num: `PR #${p.number}`, title: p.title, why, tone: 'bad', open: { kind: 'pr', p } }); });
+  if (c.runners === null) out.push({ key: 'runners', num: 'GitHub', title: '', why: TXT.kanban.runnersUnknown, tone: 'bad', open: null });
+  (c.runners || []).filter(r => r.status !== 'online').forEach(r =>
+    out.push({ key: `r${r.name}`, num: r.name, title: '', why: TXT.kanban.offline, tone: 'bad', open: { kind: 'runner', r } }));
+  const low = lowMemoryWhy(data);
+  if (low) out.push({ key: 'mem', num: 'VPS', title: '', why: low, tone: 'bad', open: null });
+  return out;
+}
+/* The memory low past `[waits] low_memory_minutes` (#2096, snapshot.py's `low_memory`), with the largest
+   processes now and their worker; else nothing. On 29/10 it stayed low all night, read by no one. */
+function lowMemoryWhy(data) {
+  const low = data.low_memory;
+  if (!low) return '';
+  const m = Math.floor(Math.max(0, data.generated_at - low.since) / 60);
+  if (m <= data.low_memory_minutes) return '';
+  const top = (low.top || []).map(p => `${p.name} ${(p.mb / 1024).toFixed(1)} GB${p.spec == null ? '' : ` #${p.spec}`}`);
+  return TXT.kanban.lowMemory(minutesText(m), top.join(' · '));
+}
+/* A PR's CI: a dot a job (skipped ones left out) and the count of green ones — « 0/1 » while only
+   `changes` exists; past KANBAN_FOLD jobs, one bar by state, so the card never overflows. */
+const KANBAN_FOLD = 12;
+const DOT = { success: 'ok', running: 'run', failure: 'ko' };  // waiting, cancelled: grey
+function ciDots(jobs) {
+  const js = (jobs || []).filter(j => j.state !== 'skipped');
+  if (!js.length) return '';
+  const ok = js.filter(j => j.state === 'success').length;
+  const tip = js.map(j => `${j.name}: ${TXT.jobState[j.state] || j.state}${j.runner ? ` · ${j.runner}` : ''}`).join('\n');
+  const counts = ['ok', 'run', 'ko', ''].map(k => [k, js.filter(j => (DOT[j.state] || '') === k).length]).filter(([, n]) => n);
+  const marks = js.length > KANBAN_FOLD
+    ? `<span class="cibar">${counts.map(([k, n]) => `<i class="${k}" style="flex:${n}"></i>`).join('')}</span>`
+    : `<span class="dots">${js.map(j => `<i class="${DOT[j.state] || ''}"></i>`).join('')}</span>`;
+  return `<span class="cijobs" title="${esc(tip)}">${marks}</span><span>${ok}/${js.length}</span>`;
+}
+/* A PR's CI on a card (#2058): a red someone holds (`red_owner`) is the ordinary state of a worker that
+   fixes — no dots, only its count of reds, discreet; else its dots (or `plain`, without jobs), and the
+   reds counted: « before » while a new CI runs or once green, as they are while red nobody holds. */
+function prCi(p, plain) {
+  const n = p.reds || 0, red = p.ci === 'failure';
+  if (red && p.red_owner) return `<span class="reds">${TXT.kanban.reds(Math.max(n, 1), false)}</span>`;
+  const marks = ciDots(p.ci_jobs) || plain;
+  return n ? `${marks}<span class="reds">${TXT.kanban.reds(n, !red)}</span>` : marks;
+}
+/* Delivered over 48 h, newest first: merges and deployments stacked, how many merges are not in prod
+   yet (those above the latest deployment), 16 merges at most, then how many older ones. */
+const DELIVERED_S = 48 * 3600, DELIVERED_ROWS = 16;
+function deliveredRows(list, nowS) {
+  const ds = list.filter(d => nowS - d.at < DELIVERED_S).sort((a, b) => b.at - a.at);
+  const deploy = ds.findIndex(d => d.kind !== 'pr');
+  const prs = ds.filter(d => d.kind === 'pr').length;
+  const rows = []; let shown = 0;
+  for (const d of ds) {
+    if (d.kind !== 'pr') { if (shown < DELIVERED_ROWS) rows.push({ kind: 'deploy', d }); continue; }
+    if (shown < DELIVERED_ROWS) { rows.push({ kind: 'pr', d }); shown++; }
+  }
+  return { count: prs, pending: deploy < 0 ? prs : deploy, rows, older: prs - shown };
+}
+/* Its rank in the factory's order (#1823), when the snapshot gives one. */
+const rankText = n => n == null ? '' : `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
+/* A chantier's panel (#1819): always its six sections in one order; the one of its card's column comes
+   first, framed — Queue → its tickets, In development → its work, Light check → its PR and CI, Merge
+   queue → its PR and CI while in test, else its place in the queue. */
+const SECTIONS = ['work', 'tickets', 'ci', 'mq', 'story', 'spec'];
+function sectionsFor(col, inTest) {
+  const focus = { queue: 'tickets', dev: 'work', check: 'ci', mq: inTest ? 'ci' : 'mq' }[col] || 'work';
+  return [focus, ...SECTIONS.filter(k => k !== focus)];
+}
+/* Where its pull request is in the merge queue: in test, its place in line (0 next), or not in it. */
+const queuePlace = (q, pull) => !q || pull == null ? null : q.testing && q.testing.pull === pull ? 'test'
+  : (i => i < 0 ? null : i)(q.waiting.findIndex(x => x.pull === pull));
+function queueLine(q, pull) {
+  const at = queuePlace(q, pull), M = TXT.panel.mq;
+  if (at === null) return M.out;
+  /* entered on an earlier head's green, for the same code diff (#1844) */
+  const stay = at === 'test' ? q.testing : q.waiting[at], reused = stay.reused_from ? M.reused(stay.reused_from) : '';
+  if (at === 'test') return M.testing + reused;
+  /* a run of its, cancelled while it waits: the queue redoes it (#2109) */
+  const cancelled = stay.cancelled ? M.cancelled(stay.cancelled.url) : '';
+  return M.waiting(rankText(at + (q.testing ? 2 : 1)), at, Boolean(q.testing)) + reused + cancelled;
+}
+/* Waiting on GitHub (#1820): a column a nature, in its order, each with its count and its line; null
+   while unknown (GitHub unreadable, or a snapshot from before #857). The labels worth showing on a
+   row: neither its nature nor `ready-for-agent`, which its column already says. */
+function waitingColumns(w) {
+  if (w == null || Array.isArray(w)) return null;
+  return Object.keys(TXT.natures).map(key => ({ key, name: TXT.natures[key], hint: TXT.natureHints[key], items: w[key] || [] }));
+}
+const SAID_BY_COLUMN = ['spec', 'ticket', 'bug', 'task', 'idea', 'ready-for-agent'];
+const usefulLabels = labels => (labels || []).filter(l => !SAID_BY_COLUMN.includes(l));
+/* The operator's star (#1875), on a Queue or Waiting card: ⭐ when starred, else ☆ shown on hover (always on touch) —
+   its label is not repeated (the snapshot leaves it out of `labels`). Never an order: the snapshot puts them first in Waiting, the queue keeps start-next's.
+   A click (#1877) flips it at once and asks `POST /star`; `pending` holds the clicks the snapshot has not caught
+   up with yet, by number: { on, at, error }. A failure puts the state back and says why on the card. */
+const STAR_HOLD_S = 150, STAR_ERROR_S = 15;
+const starOn = (i, pending = {}) => pending[i.number] ? pending[i.number].on : Boolean(i.is_starred);
+function starMark(i, pending = {}) {
+  const on = starOn(i, pending), p = pending[i.number];
+  return `<span class="star${on ? ' on' : ''}" role="button" tabindex="0" aria-pressed="${on}" data-star="${i.number}" data-on="${on}" title="${esc(on ? TXT.starredTip : TXT.starTip)}">${on ? '⭐' : '☆'}</span>`
+    + (p && p.error ? `<span class="starerr r" title="${esc(p.error)}">${esc(p.error)}</span>` : '');
+}
+/* The request: JSON, and the action's header the server's CSRF guard asks for. */
+const starRequest = (number, on) => ({ method: 'POST', cache: 'no-store', credentials: 'same-origin',
+  headers: { 'Content-Type': 'application/json', 'X-Agentctl-Action': 'star' }, body: JSON.stringify({ number, is_starred: on }) });
+async function starClick(pending, number, was, send, redraw, nowS) {
+  pending[number] = { on: !was, at: nowS };
+  redraw();
+  try {
+    const answer = await send(starRequest(number, !was));
+    if (!answer.ok) throw new Error(`HTTP ${answer.status} ${(await answer.text()).trim().slice(0, 120)}`.trim());
+  } catch (err) {
+    pending[number] = { on: was, at: nowS, error: TXT.starFailed(err.message || String(err)) };
+  }
+  redraw();
+}
+/* A fresh snapshot settles the clicks: one it agrees with, or held too long, is dropped; an error stays a while. */
+function settleStars(pending, data, nowS) {
+  const shown = new Map([...(data.queue || []), ...Object.values(data.waiting || {}).flat()].map(i => [i.number, Boolean(i.is_starred)]));
+  for (const [n, p] of Object.entries(pending)) {
+    const agrees = shown.get(Number(n)) === p.on;
+    if (p.error ? nowS - p.at > STAR_ERROR_S : agrees || nowS - p.at > STAR_HOLD_S) delete pending[n];
+  }
+}
+/* What the queue's head may hope (#1823): a place under the limit in flight, or none; unknown: nothing said. */
+const sessionCount = d => Array.isArray(d.order) ? d.order.filter(o => o.role === 'development').length : null;
+const workingCount = d => d.sessions_readable === false ? null : Array.isArray(d.workers) ? d.workers.filter(w => w.state === 'active').length : null;
+function queueSays(d) {
+  if (d.in_flight == null || d.in_flight_limit == null) return '';
+  if (d.in_flight >= d.in_flight_limit) return TXT.kanban.waitsPlace(d.in_flight);
+  const busy = sessionCount(d);
+  if (busy == null) return '';
+  return d.max_workers != null && busy >= d.max_workers ? TXT.kanban.waitsSession(busy, d.max_workers) : TXT.kanban.startsNext;
+}
+/* The queue as start-next takes it: the specs waiting for a place (#2118) in their rank, then priority, then the rest. */
+const queueOrder = q => [...q].sort((a, b) => (a.place_wait ? a.place_wait.rank : Infinity) - (b.place_wait ? b.place_wait.rank : Infinity)
+  || (b.prioritized ? 1 : 0) - (a.prioritized ? 1 : 0));
+/* A spec whose start was refused for want of a place: its rank among them, and for how long. */
+const waitedFor = s => s < 3600 ? `${Math.floor(s / 60)} min` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)} d`;
+const placeWaitMark = (s, nowS) => !s.place_wait ? ''
+  : `<span class="y" title="${TXT.kanban.placeWaitTip}">${TXT.kanban.placeWait(rankText(s.place_wait.rank), waitedFor(nowS - s.place_wait.since))}</span>`;
+/* kanban:end */
+/* relauncher:begin — the queue's next pass (#869): the timer's hour, in the
+   browser's own time zone (the server gives an instant), a countdown ticking
+   each second on the server's clock (`data-until`, like the age above), and
+   why that pass would launch nothing — start-next's own refusal. An empty
+   queue has no hour; an unreadable timer is « unknown », never a guess. */
+const countdown = s => s <= 0 ? TXT.startsNow : TXT.startsIn(clock(s));
+function nextStart(r, queue, nowS) {
+  if (!queue || !queue.length) return `<div class="next">${TXT.queueEmpty}</div>`;
+  const at = r && r.next_at != null ? r.next_at : null;
+  const when = at == null ? `<b>${TXT.unknown}</b>`
+    : `<b>${timeOfDay(at, nowS)}</b> · <span data-until="${at}">${countdown(at - nowS)}</span>`;
+  const why = r && r.refusal ? `<span class="next-why y">${esc(r.refusal)}</span>` : '';
+  return `<div class="next" title="${TXT.nextStartTip}">${TXT.nextStart} ${when}${why}</div>`;
+}
+/* relauncher:end */
+/* ---------- Control ---------- */
+const CI = Object.fromEntries(Object.entries({ running: ['ci', '◌'], queued: ['stopped', '◌'], success: ['active', '✓'], failure: ['blocked', '✗'], none: ['stopped', '·'], merged: ['done', '✓'] }).map(([k, v]) => [k, [...v, TXT.ci[k]]]));
+const ciOf = p => { const [c, g, t] = CI[p.ci] || ['stopped', '?', p.ci]; return `<span class="st-${c}">${g} ${t}</span>`; };
+const prLabel = (pr, branch) => pr ? `PR #${pr}` : esc(branch || '?');
+/* jobs:begin — a PR's jobs, as GitHub lists them (#859): state, name, machine, and a chrono —
+   0 while waiting, ticking while running (`data-since`), frozen once finished. */
+const JOB = { waiting: ['st-stopped', '◌'], running: ['st-ci', '●'], success: ['st-active', '✓'], failure: ['st-blocked', '✗'] };
+const clock = s => { s = Math.max(0, Math.floor(s)); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+  return h ? `${h}h ${m}m ${s % 60}s` : m ? `${m}m ${s % 60}s` : `${s}s`; };
+const chrono = j => j.state === 'waiting' ? clock(0) : j.state === 'running' ? (j.started_at == null ? '?' : `<span data-since="${j.started_at}">${clock(now() - j.started_at)}</span>`)
+  : j.started_at == null || j.completed_at == null ? '—' : clock(j.completed_at - j.started_at);
+/* jobs:end */
+const jobLine = j => { const [cls, glyph] = JOB[j.state] || ['st-idle', '⊘'];
+  return `<a class="li" style="color:inherit;text-decoration:none" href="${esc(j.url)}" target="_blank" rel="noopener noreferrer" title="${esc(j.name)} — ${esc(TXT.jobState[j.state] || j.state)}${j.runner ? ` · ${esc(j.runner)}` : ''}">
+    <span class="mark ${cls}">${glyph}</span><span class="tt">${esc(j.name)}</span><span class="dim" style="flex:0 0 auto">${j.machine ? TXT.machine[j.machine] : '—'}</span><span class="meta">${chrono(j)}</span></a>`; };
+const jobRow = j => `<button class="li" data-key="j${esc(j.url)}" data-open="${reg({ kind: 'job', j })}"><span class="mark dim">◌</span><span class="num wide">${prLabel(j.pr, j.branch)}</span><span class="tt">${esc(j.job)}</span><span class="meta">${j.since ? duration(now() - j.since) : ''}</span></button>`;
+/* Red is a failure; cancelled, timed out… are grey, and said. */
+const RUN = { success: ['ok', '✓', 'g', TXT.run.success], failure: ['ko', '✗', 'r', TXT.run.failure] };
+const runLook = r => RUN[r.conclusion] || ['', '⊘', 'dim', r.conclusion || '?'];
+
+/* ---------- Delivered ---------- */
+const when = t => { if (t == null) return '?'; const d = new Date(t * 1000), today = new Date(), hm = d.toTimeString().slice(0, 5);
+  const days = Math.round((new Date(today.toDateString()) - new Date(d.toDateString())) / 864e5);
+  return days === 0 ? hm : days === 1 ? `${TXT.yesterday} ${hm}` : `${dm(t)} ${hm}`; };
+/* ---------- Factory: the banner, the machine line, the kanban (#1824) ---------- */
+const prOf = w => (DATA.control.pull_requests || []).find(p => p.spec === w.spec || (w.pull_request && p.number === w.pull_request.number));
+const rankOf = x => x.rank == null ? '' : `<span title="${TXT.kanban.rankTip}">${rankText(x.rank)}</span>`;
+const jobName = n => String(n).replace(/\s*\(.*\)$/, '');
+function ciLine(p, w) {
+  if (p) return `<div class="ci"><button class="acc" data-open="${reg({ kind: 'pr', p })}">PR #${p.number}</button>${prCi(p, ciOf(p))}</div>`;
+  return w && w.pull_request ? `<div class="ci"><span class="acc">PR #${w.pull_request.number}</span>${ciOf(w.pull_request)}</div>` : '';
+}
+function chantierCard(w, col = columnOf(w)) {
+  const tone = toneOf(w), line = statusLine(w);
+  return `<div class="kcard ${tone}" data-key="k${w.spec}" data-open="${reg({ kind: 'work', spec: w.spec, col })}">
+    <div class="h"><span class="id">#${w.spec}</span>${rankOf(w)}${levelMark(w)}<span class="tm">${w.phase_since ? duration(now() - w.phase_since) : ''}</span></div>
+    <div class="t">${esc(cleanTitle(w.title))}</div>
+    ${line ? `<div class="s">${line.word ? `<span class="w ${line.tone}">${esc(line.word)}</span>` : ''}<span class="why">${esc(line.why)}</span></div>` : ''}
+    ${w.alert ? `<div class="s"><span class="why r">⚠ ${esc(w.alert)}</span></div>` : ''}
+    ${w.place_wait ? `<div class="s">${placeWaitMark(w, now())}</div>` : ''}
+    ${columnOf(w) === 'dev' ? ticketBlocks(w) : ''}
+    ${ciLine(prOf(w), w)}</div>`;
+}
+const queueCard = s => `<div class="kcard" data-key="q${s.number}" data-open="${reg({ kind: 'work', spec: s.number, col: 'queue' })}">
+  <div class="h"><span class="id">#${s.number}</span>${starMark(s, STARS)}${rankOf(s)}${s.prioritized ? `<span class="r">${TXT.priority}</span>` : ''}<span class="tm">${s.created_at ? duration(now() - s.created_at) : ''}</span></div>
+  <div class="t">${esc(cleanTitle(s.title))}</div>${s.place_wait ? `<div class="s">${placeWaitMark(s, now())}</div>` : ''}${ticketBlocks(s)}</div>`;
+const prCard = p => `<div class="kcard" data-key="p${p.number}" data-open="${reg({ kind: 'pr', p })}">
+  <div class="h"><span class="id">PR #${p.number}</span><span>${TXT.kanban.noWorker}</span><span class="tm">${p.ci_since ? duration(now() - p.ci_since) : ''}</span></div>
+  <div class="t">${esc(p.title)}</div><div class="ci">${prCi(p, ciOf(p))}</div></div>`;
+const none = `<div class="empty">—</div>`;
+function queueColumn() {
+  if (DATA.queue === null) return unknownPost;
+  const q = queueOrder(DATA.queue);
+  const says = q.length ? queueSays(DATA) : '';
+  return (says ? `<div class="hint">${says}</div>` : '') + nextStart(DATA.relauncher, DATA.queue, serverNow()) + (q.map(queueCard).join('') || `<div class="empty">${TXT.queueEmpty}</div>`);
+}
+const inColumn = col => DATA.workers.filter(w => columnOf(w) === col);
+function checkColumn() {
+  const q = DATA.merge_queue || { waiting: [] }, queued = new Set([q.testing && q.testing.pull, ...q.waiting.map(x => x.pull)]);
+  const alone = (DATA.control.pull_requests || []).filter(p => !queued.has(p.number) && !DATA.workers.some(w => prOf(w) === p));
+  return inColumn('check').map(w => chantierCard(w)).join('') + alone.map(prCard).join('') || none;
+}
+/* The merge queue without a double: the card in test is itself blue, then « next » in order, then the last exit. */
+function mqColumn() {
+  const q = DATA.merge_queue;
+  if (q == null) return `<div class="r">${TXT.kanban.mqUnknown}</div>`;
+  const prs = DATA.control.pull_requests || [], drawn = new Set();
+  const card = pull => { const w = DATA.workers.find(w => (w.pull_request && w.pull_request.number === pull) || (prOf(w) || {}).number === pull);
+    if (w) drawn.add(w.spec);
+    const p = prs.find(p => p.number === pull);
+    return w ? chantierCard(w, 'mq') : p ? prCard(p) : `<div class="empty">PR #${pull}</div>`; };
+  const testing = q.testing ? `<div class="testing" data-key="mq-testing">${card(q.testing.pull)}</div>` : `<div class="empty">${TXT.kanban.noneInTest}</div>`;
+  const next = q.waiting.map(x => card(x.pull)).join('') + inColumn('mq').filter(w => !drawn.has(w.spec)).map(w => chantierCard(w)).join('');
+  const o = q.last_out;
+  return `${testing}<div class="lbl">${TXT.kanban.next}</div>${next || `<div class="empty">${TXT.none}</div>`}
+    ${o ? `<div class="out">${TXT.kanban.lastOut(o.pull, TXT.kanban.outcome[o.outcome] || esc(o.outcome))}${o.left_at ? ` · ${TXT.ago(duration(now() - o.left_at))}` : ''}</div>` : ''}`;
+}
+function livreColumn() {
+  if (DATA.delivered === null) return unknownPost;
+  const { pending, rows, older } = deliveredRows(DATA.delivered, now());
+  if (!rows.length) return `<div class="empty">${TXT.nothingDelivered}</div>`;
+  return `<div class="liv" data-key="livre-list">${pending ? `<div class="wait">● ${TXT.kanban.notInProd(pending)}</div>` : ''}${rows.map(({ kind, d }) => kind === 'deploy'
+    ? `<button class="dep" data-key="u${esc(d.url)}" data-open="${reg({ kind: 'delivered', d })}">▲ ${TXT.kanban.deployed} · ${when(d.at)}</button>`
+    : `<button class="row" data-key="d${esc(d.url)}" data-open="${reg({ kind: 'delivered', d })}"><span class="n">#${d.number}</span><span class="x">${esc(d.title)}</span><span class="tm">${when(d.at)}</span></button>`).join('')}
+    ${older ? `<div class="out">${TXT.kanban.older(older)}</div>` : ''}</div>`;
+}
+function needsBanner() {
+  const needs = needsOf(DATA);
+  if (!needs.length) return `<div class="calm" data-key="calm"><b>✓ ${TXT.kanban.calm}</b> — ${TXT.kanban.calmWhy}</div>`;
+  return `<div class="needs" data-key="needs"><h3>${TXT.kanban.needs(needs.length)}</h3>${needs.map(n =>
+    `<${n.open ? `button data-open="${reg(n.open)}"` : 'div'} class="li${n.key === 'mem' ? ' wrap' : ''}" data-key="n${esc(n.key)}"><span class="num wide">${esc(n.num)}</span>${n.title ? `<span class="tt">${esc(n.title)}</span>` : ''}<span class="why tt ${n.tone === 'you' ? '' : 'r'}" ${n.tone === 'you' ? 'style="color:var(--violet)"' : ''}>${esc(n.why)}</span></${n.open ? 'button' : 'div'}>`).join('')}</div>`;
+}
+function machineLine() {
+  const c = DATA.control;
+  const runners = c.runners === null ? '' : c.runners.map(r => { const off = r.status !== 'online';
+    const what = off ? `<span class="r">${TXT.kanban.offline}</span>` : !r.busy ? TXT.free
+      : r.job ? `${r.job.pr ? `#${r.job.pr}` : esc(r.job.branch || '?')} ${esc(jobName(r.job.name))}${r.job.started_at ? ` · ${duration(now() - r.job.started_at)}` : ''}` : TXT.busyUnreadable;
+    return `<button data-key="r${esc(r.name)}" data-open="${reg({ kind: 'runner', r })}"><span class="led ${off ? 'off' : r.busy ? 'busy' : ''}"></span><b>${esc(r.name)}</b> ${what}</button>`; }).join('');
+  const wj = c.waiting_jobs;
+  const waiting = wj === null ? `<span class="r">${TXT.kanban.jobsUnknown}</span>`
+    : wj.length ? `<button data-open="${reg({ kind: 'list', title: TXT.jobsWaiting, items: wj, row: jobRow })}">${TXT.kanban.jobsWait(wj.length)}</button>` : `<span>${TXT.kanban.noJobWaits}</span>`;
+  const runs = (c.recent_runs || []).slice(0, 30).map(r => { const [cls, , , word] = runLook(r);
+    return `<button class="${cls}" data-key="u${esc(r.url)}" data-open="${reg({ kind: 'run', r })}" title="${esc(r.workflow)} · ${prLabel(r.pr, r.branch)} · ${esc(word)}"></button>`; }).join('');
+  return `<div class="machine" data-key="machine">${runners}${waiting}${runs ? `<span class="runs" title="${TXT.kanban.runsTip}">${runs}</span>` : ''}</div>`;
+}
+/* Waiting on GitHub (#1820): one column a nature, a list without bubbles — thin lines, like Delivered.
+   A spec opens its panel; any other issue opens on GitHub. */
+function waitingRow(key, i) {
+  const labels = usefulLabels(i.labels).map(l => `<span class="lab">${esc(l)}</span>`).join('');
+  const head = `<div class="h"><span class="id">#${i.number}</span>${starMark(i, STARS)}${i.prioritized ? `<span class="r">${TXT.priority}</span>` : ''}${labels}<span class="tm">${i.created_at ? duration(now() - i.created_at) : ''}</span></div>
+    <div class="t">${esc(cleanTitle(i.title))}</div>`;
+  return key === 'specs'
+    ? `<button class="ghrow" data-key="g${i.number}" data-open="${reg({ kind: 'spec', w: i })}">${head}<div class="s">${i.open_tickets ? TXT.openTickets(i.open_tickets) : TXT.noTicket}${i.waits_launch ? ` · <span class="r">${TXT.waitsLaunch}</span>` : ''}</div></button>`
+    : `<a class="ghrow" data-key="g${i.number}" href="${esc(issueUrl(i.number))}" target="_blank" rel="noopener noreferrer">${head}</a>`;
+}
+function githubTab(post) {
+  const cols = waitingColumns(DATA.waiting);
+  if (!cols) return `<div class="r" data-key="gh-unknown">${TXT.waitingUnknown}</div>`;
+  return `<div class="ghplan" data-key="ghplan">${cols.map(c => post(`g-${c.key}`, c.name.toUpperCase(), c.items.length,
+    `<div class="hint">${c.hint}</div>${c.items.map(i => waitingRow(c.key, i)).join('') || `<div class="empty">${TXT.none}</div>`}`)).join('')}</div>`;
+}
+function factoryTab(post) {
+  const K = TXT.kanban, cols = K.cols, h = text => `<div class="hint">${text}</div>`;
+  const mq = DATA.merge_queue;
+  return `${needsBanner()}${machineLine()}
+  <div class="plan" data-key="plan">
+    ${post('queue', cols.queue, DATA.queue ? DATA.queue.length : '?', queueColumn())}
+    ${post('dev', cols.dev, inColumn('dev').length, h(K.devHint(DATA.in_flight, DATA.in_flight_limit, DATA.max_workers, sessionCount(DATA), workingCount(DATA))) + (inColumn('dev').map(w => chantierCard(w)).join('') || none))}
+    ${post('check', cols.check, inColumn('check').length, h(K.checkHint) + checkColumn())}
+    ${post('mq', cols.mq, mq ? (mq.testing ? 1 : 0) + mq.waiting.length : '?', h(K.mqHint) + mqColumn())}
+    ${post('livre', cols.livre, DATA.delivered ? deliveredRows(DATA.delivered, now()).count : '?', h(K.livreHint) + livreColumn())}
+  </div>`;
+}
+/* tabs:begin — Factory (the plan, by default), Trends, Quality (#839). The
+   tab shown is the address's (#trends…): a reload or a shared link keeps it;
+   the French addresses of before #850 still lead to their tab. */
+const TABS = [['factory', 'usine'], ['measures', 'mesures'], ['github', 'github']];
+/* Trends and Quality became Measures (#1821): their addresses, English or French, lead there. */
+const MOVED = { trends: 'measures', tendances: 'measures', quality: 'measures', qualite: 'measures' };
+const tabOf = hash => { const id = String(hash || '').replace(/^#/, '').toLowerCase();
+  if (id === 'settings') return 'settings';  // the gear's, out of the row (#2190)
+  const tab = TABS.find(([t, old]) => t === (MOVED[id] || id) || old === id);
+  return tab ? tab[0] : 'factory'; };
+/* tabs:end */
+
+/* charts:begin — the curves, drawn as SVG strings (no library, no build). One
+   y axis per chart; a projection is the same series, dashed. Each chart
+   registers its model by a key stable across refreshes (#2050): a vertical
+   cursor reads it anywhere over the chart — `readAt` — and gives every
+   series' value at the nearest day. The gauges keep their detail, `tipAttr`. */
+const H = 170, L = 44, R = 10, T = 8, B = 20;
+/* the drawing's width: its column's, set by `fitCharts` — one SVG unit, one pixel */
+let W = 600;
+/* What each chart drawn holds, by key: what the cursor reads. */
+const MODELS = {};
+const sx = (v, d0, d1) => d1 === d0 ? L : L + (v - d0) / (d1 - d0) * (W - L - R);
+const sy = (v, d0, d1) => d1 === d0 ? H - B : H - B - (v - d0) / (d1 - d0) * (H - T - B);
+/* a round top for an axis, at least `v`: 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8 × 10^n */
+function niceMax(v) {
+  if (!(v > 0)) return 1;
+  const p = 10 ** Math.floor(Math.log10(v));
+  return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map(k => k * p).find(k => k >= v * (1 - 1e-9));
+}
+const svgEsc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+/* The details of what is drawn, by key: { label, rows: [[name, value]] }. */
+const TIPS = {};
+const tipAttr = (key, label, rows) => { TIPS[key] = { label, rows }; return `data-tip="${svgEsc(key)}"`; };
+/* the axis lines, a round step apart (1, 2, 2.5, 5 × 10^n, at most five gaps,
+   never under 1 once the top is: a count has no 1.5), then the top itself when
+   it is not one of them — an exact top, a plan passed — unless too close to
+   the last line to be read apart. */
+function axisTicks(top) {
+  if (!(top > 0)) return [0];
+  const p = 10 ** Math.floor(Math.log10(top / 5));
+  const step = [1, 2, 2.5, 5, 10].map(k => k * p).find(s => top / s <= 5 * (1 + 1e-9) && (top < 1 || s >= 1));
+  const ticks = [];
+  for (let i = 0; i * step <= top * (1 + 1e-9); i++) ticks.push(+(i * step).toPrecision(12));
+  const last = ticks[ticks.length - 1];
+  if (top - last > step * 1e-9) { if (top - last < step / 2) ticks.pop(); ticks.push(top); }
+  return ticks;
+}
+function frame(y1, fmt, xlabels, limits = [], right = R) {
+  let g = '';
+  for (const v of axisTicks(y1)) { const y = sy(v, 0, y1).toFixed(1);
+    g += `<line class="grid" x1="${L}" x2="${W - right}" y1="${y}" y2="${y}"/><text class="axis" x="${L - 6}" y="${(+y + 3).toFixed(1)}" text-anchor="end">${svgEsc(fmt(v))}</text>`; }
+  for (const [x, text] of xlabels) g += `<text class="axis" x="${x.toFixed(1)}" y="${H - 5}" text-anchor="middle">${svgEsc(text)}</text>`;
+  for (const { y, label } of limits) { const py = sy(y, 0, y1).toFixed(1);
+    g += `<line class="limit" x1="${L}" x2="${W - right}" y1="${py}" y2="${py}"/><text class="axis" x="${W - R}" y="${(+py - 4).toFixed(1)}" text-anchor="end">${svgEsc(label)}</text>`; }
+  return g;
+}
+/* series: [{cls, name, points: [[x, y]], proj: [x, y] | null}]; x in seconds.
+   tip(y, x) → [when, value], a row of the detail.
+   exact: the axis ends at y1 — the limit (a quota's 100 %, a plan's minutes) —
+   or at the highest value when one passes it, never rounded up; a projection
+   beyond stops at the top, its detail still saying where it goes (#859).
+   now: the present instant, a discreet dotted line when it falls inside (#2048).
+   xs, legend: every x the cursor stops at and every series it names, [{cls, name}]
+   — a daily chart's days and parts, a gap or an empty series said « no data » (#2050). */
+function lineChart({ key, x0, x1, y1, series, fmt, xlabels = [], limits = [], tip, exact = false, now = null, xs = null, legend = null }) {
+  const pts = series.flatMap(s => s.points);
+  if (!pts.length) return `<div class="dim">${TXT.noData}</div>`;
+  const highest = Math.max(...pts.map(p => p[1]));
+  const top = exact && y1 > 0 ? Math.max(y1, highest)
+    : niceMax(Math.max(y1 || 0, highest, ...series.filter(s => s.proj).map(s => s.proj[1]), ...limits.map(l => l.y)));
+  let g = frame(top, fmt, xlabels.map(([x, t]) => [sx(x, x0, x1), t]), limits);
+  if (now != null && now >= x0 && now <= x1) { const x = sx(now, x0, x1).toFixed(1);
+    g += `<line class="nowline" x1="${x}" x2="${x}" y1="${T}" y2="${H - B}"/>`; }
+  for (const s of series) {
+    if (!s.points.length) continue;
+    const xy = s.points.map(([x, y]) => `${sx(x, x0, x1).toFixed(1)},${sy(y, 0, top).toFixed(1)}`);
+    g += xy.length > 1 ? `<polyline class="ln ${s.cls}" points="${xy.join(' ')}"/>`
+      : `<circle class="ln ${s.cls}" r="3" cx="${xy[0].split(',')[0]}" cy="${xy[0].split(',')[1]}"/>`;  // one reading: a dot, not nothing
+    if (s.proj) { const [lx, ly] = s.points[s.points.length - 1];
+      let [px, py] = s.proj;
+      if (py > top) { px = lx + (top - ly) / (py - ly) * (px - lx); py = top; }  // stops at the top
+      g += `<line class="proj ${s.cls}" x1="${sx(lx, x0, x1).toFixed(1)}" y1="${sy(ly, 0, top).toFixed(1)}" x2="${sx(px, x0, x1).toFixed(1)}" y2="${sy(py, 0, top).toFixed(1)}"/>`; }
+  }
+  const names = legend || series.filter((s, i) => series.findIndex(o => o.name === s.name) === i).map(s => ({ cls: s.cls, name: s.name }));
+  MODELS[key] = { kind: 'line', x0, x1, top, tip, series: series.filter(s => s.points.length), names,
+    xs: xs || [...new Set(pts.map(p => p[0]))].sort((a, b) => a - b) };
+  return plot(key, g);
+}
+/* A chart's SVG, focusable, its cursor's layer last; its label beside it, in HTML. */
+const plot = (key, g) => `<div class="plot"><svg viewBox="0 0 ${W} ${H}" role="img" tabindex="0" data-chart="${svgEsc(key)}">${g}<g class="cursor"></g></svg><div class="xtag" hidden></div></div>`;
+/* bars: [{label, parts: [{v, cls}], rows: [[cls, name, value]]}], stacked
+   bottom-up with a 2 px gap; `rows` is what the cursor says of the day —
+   every category's exact figure. The whole column is read, not only its parts.
+   line: {cls, values: [0..1 | null]}, a share per bar drawn over them on its
+   own 0–100 % axis, at the right; cut where a value is null. Its figure is
+   in the bar's rows. */
+const PCT_AXIS = 30;
+function barChart({ key, bars, fmt, every = 7, line = null }) {
+  const totals = bars.map(b => b.parts.reduce((a, p) => a + (p.v > 0 ? p.v : 0), 0));
+  if (!totals.some(t => t > 0)) return `<div class="dim">${TXT.noData}</div>`;
+  const right = line ? R + PCT_AXIS : R;
+  const top = niceMax(Math.max(...totals)), step = (W - L - right) / bars.length, w = Math.max(2, step - 3);
+  const xlabels = bars.map((b, i) => [L + step * (i + 0.5), b.label]).filter((_, i) => (bars.length - 1 - i) % every === 0);
+  let g = frame(top, fmt, xlabels, [], right);
+  bars.forEach((b, i) => { if (!(totals[i] > 0)) return;
+    const x = (L + step * i + (step - w) / 2).toFixed(1);
+    let base = 0;
+    for (const p of b.parts) { if (!(p.v > 0)) continue;
+      const y0 = sy(base, 0, top), y1 = sy(base + p.v, 0, top), gap = base > 0 ? 2 : 0;
+      g += `<rect class="${p.cls}" x="${x}" y="${y1.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(1, y0 - y1 - gap).toFixed(1)}" rx="2"/>`;
+      base += p.v; } });
+  if (line) g += shareLine(line, i => L + step * (i + 0.5), W - right);
+  MODELS[key] = { kind: 'bar', step, line, bars: bars.map(b => ({ title: b.label, rows: b.rows })) };
+  return plot(key, g);
+}
+function shareLine({ cls, values }, x, edge) {
+  let g = '', run = [];
+  for (const v of [0, 0.5, 1]) g += `<text class="axis pct" x="${edge + 6}" y="${(sy(v, 0, 1) + 3).toFixed(1)}">${v * 100}%</text>`;
+  const cut = () => {
+    const xy = run.map(([i, v]) => [x(i).toFixed(1), sy(v, 0, 1).toFixed(1)]);
+    if (xy.length > 1) g += `<polyline class="ln ${cls}" points="${xy.map(p => p.join(',')).join(' ')}"/>`;
+    else if (xy.length) g += `<circle class="ln ${cls}" r="2" cx="${xy[0][0]}" cy="${xy[0][1]}"/>`;  // a lone share: a dot
+    run = []; };
+  values.forEach((v, i) => { if (v == null) cut(); else run.push([i, v]); });
+  cut();
+  return g;
+}
+/* The cursor's reading (#2050), pure: a chart's model at `vx`, the pointer's
+   x in SVG units. Over bars, the column under it; over curves, the nearest x
+   any series has — a day, a reading — and a row per series, in the legend's
+   order, « no data » where a series has none; past a projection's last
+   reading, along its dashes, the projection there, unsnapped.
+   → { i, n, x, title, rows: [[cls, name, value]], points: [[x, y, cls]], band?, pj? } */
+const clampIndex = (i, n) => Math.max(0, Math.min(n - 1, i));
+const countOf = m => m.kind === 'bar' ? m.bars.length : m.xs.length;
+/* what a stop is, kept across a refresh: a day moves its index when the window slides */
+const stopOf = (m, i) => m.kind === 'bar' ? m.bars[i].title : m.xs[i];
+const tipRow = (m, y, x) => { const r = m.tip(y, x); return Array.isArray(r) ? r : ['', String(r)]; };
+function readIndex(m, i) {
+  if (m.kind === 'bar') { const b = m.bars[i], x = L + m.step * (i + 0.5), share = m.line ? m.line.values[i] : null;
+    return { i, n: m.bars.length, x, title: b.title, rows: b.rows, band: [L + m.step * i, m.step],
+      points: share == null ? [] : [[x, sy(share, 0, 1), m.line.cls]] }; }
+  const t = m.xs[i], rows = [], points = [];
+  for (const { cls, name } of m.names) {
+    const s = m.series.find(s => s.name === name && s.points.some(p => p[0] === t));
+    if (!s) { rows.push([cls, name, TXT.measures.noData]); continue; }
+    const y = s.points.find(p => p[0] === t)[1];
+    rows.push([s.cls, name, tipRow(m, y, t)[1]]);
+    points.push([sx(t, m.x0, m.x1), sy(y, 0, m.top), s.cls]);
+  }
+  return { i, n: m.xs.length, x: sx(t, m.x0, m.x1), title: tipRow(m, 0, t)[0], rows, points };
+}
+function readAt(m, vx) {
+  if (m.kind === 'bar') return readIndex(m, clampIndex(Math.floor((vx - L) / m.step), m.bars.length));
+  const t = m.x0 + (vx - L) / (W - L - R) * (m.x1 - m.x0), proj = m.series.find(s => s.proj);
+  if (proj && t > proj.points[proj.points.length - 1][0] && proj.proj[0] > proj.points[proj.points.length - 1][0]) {
+    const [lx, ly] = proj.points[proj.points.length - 1], [px, py] = proj.proj, at = Math.min(t, px);
+    const y = ly + (py - ly) * (at - lx) / (px - lx);
+    return { pj: true, i: null, n: m.xs.length, x: sx(at, m.x0, m.x1), title: `${tipRow(m, 0, at)[0]} · ${TXT.projection}`,
+      rows: [[proj.cls, TXT.atThisPace(proj.name), tipRow(m, y, at)[1]], ...(proj.projRows || []).map(([name, value]) => ['', name, value])],
+      points: [[sx(at, m.x0, m.x1), sy(Math.min(y, m.top), 0, m.top), proj.cls]] };
+  }
+  let best = 0;
+  m.xs.forEach((x, i) => { if (Math.abs(x - t) < Math.abs(m.xs[best] - t)) best = i; });
+  return readIndex(m, best);
+}
+/* ← → walk the days, from the latest when none is shown yet; Escape closes. */
+function stepIndex(i, n, key) {
+  if (key === 'Escape') return null;
+  if (key === 'ArrowLeft') return i == null ? n - 1 : clampIndex(i - 1, n);
+  if (key === 'ArrowRight') return i == null ? 0 : clampIndex(i + 1, n);
+  return i;
+}
+/* What the cursor draws: its line, a dot per curve, the column lit; and its label's rows. */
+function cursorSvg(r) {
+  let g = r.band ? `<rect class="xband" x="${r.band[0].toFixed(1)}" y="${T}" width="${r.band[1].toFixed(1)}" height="${H - T - B}"/>` : '';
+  g += `<line class="xline" x1="${r.x.toFixed(1)}" x2="${r.x.toFixed(1)}" y1="${T}" y2="${H - B}"/>`;
+  return g + r.points.map(([x, y, cls]) => `<circle class="xdot ${cls}" r="3.5" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}"/>`).join('');
+}
+const cursorHtml = r => `<div class="xt">${svgEsc(r.title)}</div><dl>${r.rows.map(([cls, name, value]) =>
+  `<dt><span class="sw ${cls}"></span>${svgEsc(name)}</dt><dd>${svgEsc(value)}</dd>`).join('')}</dl>`;
+/* charts:end */
+
+/* ---------- Measures (#1821) ---------- */
+/* The tab's data: read from the history base when the tab is shown, and on each cycle while it is. */
+const TAB_DATA = { measures: { data: null, failed: null, at: 0 }, settings: { data: null, failed: null, at: 0 } };
+let MEASURE_DAYS = 30;  // 7, 30 or 90: the span asked
+const tabUrl = name => name === 'measures' ? `measures.json?days=${MEASURE_DAYS}` : name === 'settings' ? 'settings.json' : null;
+const DAY_S = 86400;
+const dayOf = t => new Date(t * 1000);
+const dm = t => { const d = dayOf(t); return `${TXT.months[d.getMonth()]} ${d.getDate()}`; };
+const legend = items => `<div class="legend">${items.map(([cls, name]) => `<span><span class="sw ${cls}"></span>${esc(name)}</span>`).join('')}</div>`;
+const chartCard = (title, body) => `<section class="st chart"><h3><span>${title}</span></h3>${body}</section>`;
+const short = day => `${TXT.months[Number(day.slice(5, 7)) - 1]} ${Number(day.slice(8, 10))}`;
+/* quotacharts:begin — the QUOTAS section (#2048): the Claude week and the Actions month in
+   progress, as Trends drew them before #1821 — the readings, the projection dashed to the
+   reset, its sentence above, the alert or plan line, the present instant dotted. Whatever
+   the span shown. Run by `dashboard.test.mjs`. */
+const dateTime = t => `${dm(t)} ${dayOf(t).toTimeString().slice(0, 5)}`;
+const dayTicks = (x0, x1, fmt) => { const out = []; for (let t = x0; t <= x1; t += DAY_S) out.push([t, fmt(t)]); return out; };
+const million = n => n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)} M` : n >= 1e3 ? `${n >= 1e4 ? Math.round(n / 1e3) : +(n / 1e3).toFixed(1)} k` : String(Math.round(n));
+/* the slope under the cursor's projection: its rate only, the sentence above says the rest */
+const perDay = (s, f) => s ? [[TXT.tip.slope, `${f(s.per_day)}${TXT.measures.perDay}`]] : [];
+function claudeChart(c, at) {
+  if (!c) return chartCard(TXT.claudeTitle, `<div class="dim">${TXT.claudeUnknown}</div>`);
+  const say = c.projected == null ? TXT.weekNoSlope
+    : `${TXT.weekPace(Math.round(c.projected), c.slope)}${c.projected >= 100 ? ` <span class="r">${TXT.exhausted}</span>` : ''}`;
+  const week = c.seven_day, last = week[week.length - 1];
+  return chartCard(TXT.claudeTitle, `<p class="say">${say}</p>${lineChart({
+    key: 'claude', x0: c.start, x1: c.end, y1: 100, exact: true, now: at, fmt: v => `${Math.round(v)}%`, tip: (v, t) => [dateTime(t), `${v.toFixed(1)}%`],
+    xlabels: dayTicks(c.start, c.end, t => `${TXT.weekdays[dayOf(t).getDay()]} ${dayOf(t).getDate()}`),
+    limits: [{ y: 80, label: TXT.alertLine(80) }],
+    series: [{ cls: 's1', name: TXT.week, points: week, proj: c.projected == null || !last ? null : [c.end, c.projected], projRows: perDay(c.slope, v => `${v.toFixed(1)}%`) }] })}`);
+}
+function actionsChart(a, at) {
+  if (!a) return chartCard(TXT.actionsTitle, `<div class="dim">${TXT.actionsUnknown}</div>`);
+  const say = a.projected == null ? TXT.monthNoSlope
+    : `${TXT.monthPace(int(a.projected), int(a.included), a.slope)}${a.projected > a.included ? ` <span class="y">${TXT.overrun}</span>` : ''}`;
+  return chartCard(TXT.actionsTitle, `<p class="say">${say}</p>${lineChart({
+    key: 'actions', x0: a.start, x1: a.end, y1: a.included, exact: true, now: at, fmt: v => million(v), tip: (v, t) => [dateTime(t), `${int(v)} min`],
+    xlabels: dayTicks(a.start, a.end, t => dayOf(t).getDate()).filter((_, i) => i % 7 === 0),
+    limits: [{ y: a.included, label: TXT.included(int(a.included)) }],
+    series: [{ cls: 's1', name: TXT.minutes, points: a.points, proj: a.projected == null ? null : [a.end, a.projected], projRows: perDay(a.slope, v => `${int(v)} min`) }] })}`);
+}
+/* The machine's last week, hour by hour (#2051): memory up to the total, CPU and disk up to
+   100 %, the disk's 90 % alert — whatever the span. An hour without a reading is a gap. */
+function vpsCharts(hours, totalMb, at) {
+  const x1 = at, x0 = at - 7 * DAY_S, ticks = dayTicks(x0 + DAY_S, x1, dm);
+  const runs = i => { const out = []; let run = [], last = null;
+    for (const h of hours) { const v = h[i];
+      if (v == null || (last != null && h[0] - last > 3600)) { if (run.length) out.push(run); run = []; }
+      if (v != null) run.push([h[0], v]);
+      last = h[0]; }
+    if (run.length) out.push(run);
+    return out; };
+  const one = (title, i, y1, fmt, limits = []) => chartCard(title, lineChart({ key: `vps${i}`, x0, x1, y1, fmt, xlabels: ticks, limits, exact: true,
+    tip: (v, t) => [`${dateTime(t)} ${TXT.hourMean}`, i === 1 ? TXT.mb(int(v)) : `${v.toFixed(1)}%`],
+    series: runs(i).map((points, n) => ({ cls: 's1', key: `s1-${n}`, name: title.toLowerCase(), points, proj: null })) }));
+  return one(TXT.memoryTitle, 1, totalMb || 0, v => `${(v / 1024).toFixed(1)} ${TXT.gb}`)
+    + one(TXT.cpuTitle, 2, 100, v => `${Math.round(v)}%`)
+    + one(TXT.diskTitle, 3, 100, v => `${Math.round(v)}%`, [{ y: 90, label: TXT.alertLine(90) }]);
+}
+/* quotacharts:end */
+const tabState = (name, label) => { const d = TAB_DATA[name];
+  if (!d.data) return `<div class="${d.failed ? 'r' : 'dim'}">${d.failed ? TXT.tabUnreadable(label, esc(d.failed)) : TXT.loadingTab(label)}</div>`;
+  return d.data.error ? `<div class="r">✗ ${esc(d.data.error)}</div>` : null; };
+const span = s => s == null ? '?' : s < 60 ? `${Math.round(s)} s` : duration(s);
+const tile = (title, value, sub) => `<div class="st tile"><h3><span>${title}</span></h3><div class="big">${value}</div><div class="dim">${sub}</div></div>`;
+const RULE = TXT.rule;  // keyed by quality.py's rule names
+const testName = t => { const [file, name] = t.split('::'); return name ? `${esc(name)} <span class="dim">${esc(file.split('/').pop())}</span>` : esc(file); };
+/* measures:begin — the tiles of the Measures tab (#1821), over the span shown: each from its daily
+   series, a gap left out, never counted as a zero; what nothing measures yet says so. Pure, run by
+   `dashboard.test.mjs`. */
+const present = a => (a || []).filter(v => v != null);
+const sumOf = a => present(a).reduce((x, y) => x + y, 0);
+const medianOf = a => { const s = present(a).sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
+const one = v => (Math.round(v * 10) / 10).toString();
+function measureTiles(m) {
+  const S = m.series, M = TXT.measures, n = m.days.length, none = M.noData;
+  const perDay = k => present(S[k]).length ? `${one(sumOf(S[k]) / present(S[k]).length)}${M.perDay}` : none;
+  const runs = sumOf(S.runs_green) + sumOf(S.runs_red) + sumOf(S.runs_other);
+  const nights = present(S.night_ok), lowest = present(S.mem_min_gb);
+  /* the span's own figures (#1834's review), not a median of daily medians */
+  const P = m.period || {}, p50 = P.ci_p50 ?? null, p90 = P.ci_p90 ?? null, lead = medianOf(S.lead_h);
+  const waited = ['wait_ci', 'wait_memory', 'wait_permission', 'wait_question'].reduce((a, k) => a + sumOf(S[k]), 0);
+  return [
+    [M.tile.merged, perDay('merged'), M.inSpan(sumOf(S.merged), n)],
+    [M.tile.deploys, present(S.deploys).length ? String(sumOf(S.deploys)) : none, M.inDays(n)],
+    [M.tile.tickets, perDay('tickets'), M.inSpan(sumOf(S.tickets), n)],
+    [M.tile.ciDuration, p50 == null ? none : `${one(p50)} min`, p90 == null ? M.prsOnly : M.p90(one(p90))],
+    [M.tile.red, runs ? `${Math.round(100 * sumOf(S.runs_red) / runs)}%` : none, M.redOf(sumOf(S.runs_red), runs)],
+    [M.tile.lead, lead == null ? none : `${one(lead)} h`, M.median],
+    [M.tile.nights, nights.length ? `${nights.filter(v => v === 1).length}/${nights.length}` : none, M.nightsSub],
+    [M.tile.memory, lowest.length ? `${one(Math.min(...lowest))} ${TXT.gb}` : none, M.lowReadings(sumOf(S.mem_low))],
+    [M.tile.wait, present(S.wait_ci).length ? `${one(waited / present(S.wait_ci).length / 60)} h${M.perDay}` : none, M.waitSub],
+    [M.tile.cost, present(S.cost_m).length ? `≈ ${one(medianOf(S.cost_m))} M` : none, M.costSub],
+    [M.tile.firstGreen, P.first_green == null ? none : `${Math.round(P.first_green)}%`, M.firstGreenSub],
+    [M.tile.oom, present(S.oom_runner).length ? String(sumOf(S.oom_runner)) : none, M.oomSub(sumOf(S.oom))],
+  ];
+}
+/* measures:end */
+/* daily:begin — a day's curve or bars from the series of `measures.json`. Run by `dashboard.test.mjs`. */
+const dayX = d => Date.parse(d + 'T12:00:00Z') / 1000;
+const RUNNER_CLS = ['s1', 's2', 'k4', 'k3'];
+const labelEvery = n => n <= 7 ? 1 : n <= 30 ? 5 : 15;
+/* A daily curve: a gap where a day has no value — a run of days is a line of its own. */
+function dailyLine(m, key, parts, fmt, { y1 = 0, exact = false, limits = [] } = {}) {
+  const series = [], every = labelEvery(m.days.length);
+  for (const p of parts) { let run = [];
+    const cut = () => { if (run.length) series.push({ cls: p.cls, key: `${p.cls}-${series.length}`, name: p.name, points: run, proj: null }); run = []; };
+    m.days.forEach((d, i) => { const v = m.series[p.k][i]; if (v == null) cut(); else run.push([dayX(d), v]); });
+    cut(); }
+  return lineChart({ key, x0: dayX(m.days[0]) - DAY_S / 2, x1: dayX(m.days[m.days.length - 1]) + DAY_S / 2, y1, exact, limits, fmt, series,
+    xs: m.days.map(dayX), legend: parts.map(p => ({ cls: p.cls, name: p.name })),
+    xlabels: m.days.filter((_, i) => (m.days.length - 1 - i) % every === 0).map(d => [dayX(d), short(d)]),
+    tip: (v, t) => [dm(t), fmt(v)] });
+}
+/* Daily bars, stacked; a day without data says so in its detail, its figures in a right column (the operator, 01/10).
+   line: {k, cls, name}, a share series (0..1) on the right axis — its % the detail's last row (#2049). */
+function dailyBars(m, key, parts, fmt = v => String(Math.round(v)), line = null) {
+  const share = v => v == null ? TXT.measures.noData : `${Math.round(v * 100)}%`;
+  return barChart({ key, fmt, every: labelEvery(m.days.length), line: line && { cls: line.cls, values: m.series[line.k] },
+    bars: m.days.map((d, i) => ({ label: short(d), parts: parts.map(p => ({ v: m.series[p.k][i] || 0, cls: p.cls })),
+      rows: [...parts.map(p => [p.cls, p.name, m.series[p.k][i] == null ? TXT.measures.noData : fmt(m.series[p.k][i])]),
+        ...(line ? [[line.cls, line.name, share(m.series[line.k][i])]] : [])] })) });
+}
+/* The load (#2280): each consumer's share of the whole machine's CPU, the mean of a day's 5-minute
+   readings (#2279) that said every consumer — stacked, they make those readings' CPU; one never measured says "no data". */
+function loadParts() {
+  const M = TXT.measures;
+  return [{ k: 'cpu_workers', cls: 'k1', name: M.workers }, { k: 'cpu_ci', cls: 'k2', name: 'CI' }, { k: 'cpu_factory', cls: 'k4', name: M.factory },
+    { k: 'cpu_containers', cls: 'ci-ko', name: M.containers }, { k: 'cpu_rest', cls: 'k3', name: M.rest }];
+}
+/* daily:end */
+function measuresTab() {
+  const M = TXT.measures, choose = `<div class="spans" data-key="spans">${[7, 30, 90].map(n => `<button class="${n === MEASURE_DAYS ? 'on' : ''}" data-days="${n}">${M.days(n)}</button>`).join('')}</div>`;
+  const said = tabState('measures', M.label); if (said) return choose + said;
+  const m = TAB_DATA.measures.data, C = M.chart, S = m.series, Q = m.quotas || {};
+  S.oom_other = S.oom.map((v, i) => v == null ? null : v - (S.oom_runner[i] || 0));
+  for (const [name, v] of Object.entries(m.runners)) S[`busy:${name}`] = v;
+  const h = (t, body) => `<h2 class="mesh">${t}</h2><div class="charts">${body}</div>`;
+  const cores = Math.max(0, ...(S.cores || []).filter(v => v != null));  // the load's line: one per core (#2280)
+  S.cpu_share = (S.cpu_mean || []).map(v => v == null ? null : v / 100);  // the day's CPU, on the bars' share axis
+  const ok = M.green, ko = M.red, other = M.other;
+  const flaky = m.flaky.length ? `<table class="rank"><tr>${TXT.flakyHead.map(x => `<th>${x}</th>`).join('')}</tr>${m.flaky.map(f => `<tr>
+    <td class="tt" title="${esc(f.test)}">${testName(f.test)}</td><td>${f.failures}</td>
+    <td><a href="${esc(f.last_url)}" target="_blank" rel="noopener noreferrer">${when(f.last_at)} ↗</a></td><td class="dim">${f.rules.map(x => esc(RULE[x] || x)).join('; ')}</td></tr>`).join('')}</table>`
+    : `<div class="dim">${TXT.noFlaky}</div>`;
+  const alerts = m.alerts.length ? m.alerts.map(a => `<div class="li"><span class="mark ${a.closed_at ? 'g' : 'r'}">${a.closed_at ? '✓' : '■'}</span><span class="tt">${esc(a.text)}</span>
+    <span class="meta">${when(a.opened_at)}${a.closed_at ? ` → ${when(a.closed_at)}` : TXT.stillOpen} · ${a.sent ? TXT.sent : a.silenced ? TXT.silenced : TXT.notSentYet}</span></div>`).join('')
+    : `<div class="dim">${TXT.noAlert}</div>`;
+  return `${choose}<div class="mes" data-key="measures-${m.now}-${m.span}">
+    <div class="tiles">${measureTiles(m).map(([t, v, sub]) => tile(t, v, sub)).join('')}</div>
+    ${h(`${M.sec.quotas}<span class="dim">${M.quotasSub}</span>`, claudeChart(Q.claude, m.now) + actionsChart(Q.actions, m.now))}
+    ${h(M.sec.ci, chartCard(C.runs, `${legend([['ci-ok', ok], ['ci-ko', ko], ['k3', other], ['s1', M.greenShare]])}${dailyBars(m, 'm-runs',
+        [{ k: 'runs_green', cls: 'ci-ok', name: ok }, { k: 'runs_red', cls: 'ci-ko', name: ko }, { k: 'runs_other', cls: 'k3', name: other }], undefined, { k: 'green_share', cls: 's1', name: M.greenShare })}`)
+      + chartCard(C.duration, `${legend([['s1', M.median], ['s2', 'p90']])}${dailyLine(m, 'm-dur', [{ k: 'ci_p50', cls: 's1', name: M.median }, { k: 'ci_p90', cls: 's2', name: 'p90' }], v => `${one(v)} min`)}`)
+      + chartCard(C.night, `<p class="say dim">${M.nightSay}</p>${dailyLine(m, 'm-night', [{ k: 'night_minutes', cls: 's1', name: C.night.toLowerCase() }], v => `${Math.round(v)} min`)}`)
+      + chartCard(C.redCause, `<p class="say dim">${M.redCauseSay}</p>${legend([['ci-ko', M.test], ['s2', M.machine]])}${dailyBars(m, 'm-redcause', [{ k: 'red_test', cls: 'ci-ko', name: M.test }, { k: 'red_machine', cls: 's2', name: M.machine }])}`)
+      + chartCard(C.runnerWait, `<p class="say dim">${M.runnerWaitSay}</p>${legend([['s1', M.median], ['s2', M.queueJobs]])}${dailyLine(m, 'm-rwait', [{ k: 'runner_wait', cls: 's1', name: M.median }, { k: 'queue_runner_wait', cls: 's2', name: M.queueJobs }], v => `${one(v)} min`)}`)
+      + chartCard(C.runnerBusy, `<p class="say dim">${M.runnerBusySay}</p>${legend(Object.keys(m.runners).map((name, i) => [RUNNER_CLS[i % 4], name]))}${dailyLine(m, 'm-busy', Object.keys(m.runners).map((name, i) => ({ k: `busy:${name}`, cls: RUNNER_CLS[i % 4], name })), v => `${Math.round(v)}%`, { y1: 100, exact: true })}`)
+      + chartCard(C.perPr, `<p class="say dim">${M.perPrSay}</p>${dailyLine(m, 'm-perpr', [{ k: 'runs_per_pr', cls: 's1', name: M.mean }], v => one(v))}`))}
+    ${h(M.sec.delivery, chartCard(C.merged, dailyBars(m, 'm-merged', [{ k: 'merged', cls: 's1', name: C.merged.toLowerCase() }]))
+      + chartCard(C.deploys, dailyBars(m, 'm-deploys', [{ k: 'deploys', cls: 'ci-ok', name: C.deploys.toLowerCase() }]))
+      + chartCard(C.lead, dailyLine(m, 'm-lead', [{ k: 'lead_h', cls: 's1', name: M.median }], v => `${one(v)} h`))
+      + chartCard(C.tickets, `<p class="say dim">${M.ticketsSay}</p>${dailyBars(m, 'm-tickets', [{ k: 'tickets', cls: 's1', name: C.tickets.toLowerCase() }])}`)
+      + chartCard(C.queue, `${legend([['s1', M.queueTime]])}${dailyLine(m, 'm-mq', [{ k: 'mq_minutes', cls: 's1', name: M.queueTime }], v => `${Math.round(v)} min`)}${dailyBars(m, 'm-mq-back', [{ k: 'mq_sent_back', cls: 'ci-ko', name: M.sentBack }])}`))}
+    ${h(M.sec.workers, chartCard(C.tokens, dailyBars(m, 'm-tokens', [{ k: 'tokens_m', cls: 'k1', name: C.tokens.toLowerCase() }], v => `${one(v)} M`))
+      + chartCard(C.quota, dailyLine(m, 'm-quota', [{ k: 'quota_week', cls: 's1', name: TXT.week }], v => `${Math.round(v)}%`, { y1: 100, exact: true, limits: [{ y: 80, label: TXT.alertLine(80) }] }))
+      + chartCard(C.wait, `${legend([['s2', 'CI'], ['ci-ko', M.memory], ['k1', M.permission], ['k4', M.question]])}${dailyBars(m, 'm-wait',
+        [{ k: 'wait_ci', cls: 's2', name: 'CI' }, { k: 'wait_memory', cls: 'ci-ko', name: M.memory }, { k: 'wait_permission', cls: 'k1', name: M.permission }, { k: 'wait_question', cls: 'k4', name: M.question }], v => `${Math.round(v)} min`)}`)
+      + chartCard(C.nudges, `${legend([['k1', M.nudgeWorker], ['s2', M.nudgeCi], ['k4', M.nudgeMachine]])}${dailyBars(m, 'm-nudges',
+        [{ k: 'nudge_worker', cls: 'k1', name: M.nudgeWorker }, { k: 'nudge_ci', cls: 's2', name: M.nudgeCi }, { k: 'nudge_machine', cls: 'k4', name: M.nudgeMachine }])}`)
+      + chartCard(C.firstGreen, `<p class="say dim">${M.firstGreenSay}</p>${dailyLine(m, 'm-green', [{ k: 'first_green', cls: 's1', name: C.firstGreen.toLowerCase() }], v => `${Math.round(v)}%`, { y1: 100, exact: true })}`)
+      + chartCard(C.cost, `<p class="say dim">${M.costSay}</p>${dailyLine(m, 'm-cost', [{ k: 'cost_m', cls: 's1', name: M.mean }], v => `${one(v)} M`)}`))}
+    ${h(`${M.sec.machine}<span class="dim">${M.machineSub}</span>`, vpsCharts((m.hours || {}).vps || [], (m.hours || {}).memory_total_mb, m.now) + chartCard(C.memory, dailyLine(m, 'm-mem', [{ k: 'mem_min_gb', cls: 's1', name: M.lowest }], v => `${one(v)} ${TXT.gb}`, { limits: [{ y: 1.5, label: '1.5 GB' }] }))
+      + chartCard(C.alerts, `${legend([['s2', M.alertsSent], ['ci-ko', M.lowReadingsName]])}${dailyBars(m, 'm-alerts', [{ k: 'alerts', cls: 's2', name: M.alertsSent }, { k: 'mem_low', cls: 'ci-ko', name: M.lowReadingsName }])}`)
+      + chartCard(C.load, `<p class="say dim">${M.loadSay}</p>${dailyLine(m, 'm-load', [{ k: 'load_p50', cls: 's1', name: M.median }, { k: 'load_max', cls: 's2', name: M.peak }],
+        v => one(v), { limits: cores ? [{ y: cores, label: M.cores(cores) }] : [] })}`)
+      + chartCard(C.cpu, `<p class="say dim">${M.cpuSay}</p>${legend(loadParts().map(p => [p.cls, p.name]))}${dailyBars(m, 'm-cpu', loadParts(), v => `${Math.round(v)}%`, { k: 'cpu_share', cls: 's1', name: M.cpuUse })}`)
+      + chartCard(C.disk, dailyLine(m, 'm-disk', [{ k: 'disk_max', cls: 's1', name: M.highest }], v => `${Math.round(v)}%`, { y1: 100, exact: true, limits: [{ y: 90, label: TXT.alertLine(90) }] }))
+      + chartCard(C.oom, `<p class="say dim">${M.oomSay}</p>${legend([['ci-ko', M.runners], ['k3', M.otherUnits]])}${dailyBars(m, 'm-oom',
+        [{ k: 'oom_runner', cls: 'ci-ko', name: M.runners }, { k: 'oom_other', cls: 'k3', name: M.otherUnits }])}`))}
+    <h2 class="mesh">${M.sec.quality}</h2>
+    <section class="st chart"><h3><span>${TXT.flakySection}</span><b>${m.flaky.length}</b></h3>${flaky}</section>
+    <section class="st chart" style="margin-top:16px"><h3><span>${TXT.alertsSection}</span><b>${m.alerts.length}</b></h3>${alerts}</section></div>`;
+}
+/* settings:begin — the Settings tab (#2190): per block, each setting with its value in force,
+   its default and its bounds, as `GET /settings.json` says them; « Save » sends the values
+   changed, « Default value » the key's removal. The bounds are the server's to check: its
+   400 is said under the block. Run by `dashboard.test.mjs`. */
+const SET = { rev: 0, said: {} };  // rev: a new form after a save (typed values dropped)
+const boundsText = s => s.kind === 'bool' ? TXT.settings.atOnce : s.maximum == null ? TXT.settings.atLeast(s.minimum) : TXT.settings.from(s.minimum, s.maximum);
+const withUnit = (v, s) => s.kind === 'bool' ? (v ? TXT.settings.on : TXT.settings.off) : s.unit ? `${v} ${s.unit}` : String(v);
+/* What « Save » sends: the values typed that differ from those in force — or what is wrong. */
+function settingsChanges(settings, typed) {
+  const changes = {}, wrong = [];
+  for (const s of settings) {
+    if (s.kind === 'bool' || !(s.key in typed)) continue;  // a switch is sent as it is flipped
+    const raw = String(typed[s.key]).trim();
+    if (!/^[0-9]+$/.test(raw)) { wrong.push(TXT.settings.notWhole(s.label)); continue; }
+    if (Number(raw) !== s.value) changes[s.key] = Number(raw);
+  }
+  return wrong.length ? { error: wrong.join('; ') } : { changes };
+}
+const settingRow = s => `<div class="set">
+  <label for="set-${esc(s.key)}">${esc(s.label)}</label>
+  <span class="in"><input id="set-${esc(s.key)}" data-block="${esc(s.block)}" ${s.kind === 'bool'
+    ? `type="checkbox" role="switch" ${s.value ? 'checked' : ''} data-switch="${esc(s.key)}"`
+    : `type="number" inputmode="numeric" step="1" min="${s.minimum}"${s.maximum == null ? '' : ` max="${s.maximum}"`} value="${esc(s.value)}" data-setting="${esc(s.key)}"`}>${s.unit ? `<span class="dim">${esc(s.unit)}</span>` : ''}
+  <button class="btn" data-reset="${esc(s.key)}" data-block="${esc(s.block)}" title="${esc(TXT.settings.resetTip)}" ${s.set ? '' : 'disabled'}>${TXT.settings.reset}</button></span>
+  <span class="hint dim">${esc(TXT.settings.defaultIs(withUnit(s.default, s)))} · ${esc(boundsText(s))} · ${s.set ? TXT.settings.set : TXT.settings.byDefault}</span></div>`;
+function settingsBlock(block, settings, said) {
+  const rows = settings.filter(s => s.block === block.key);
+  const say = said ? `<span class="${said.cls}">${esc(said.text)}</span>` : '';
+  return `<section class="st" data-key="set-${esc(block.key)}-${SET.rev}"><h3><span>${esc(block.label.toUpperCase())}</span></h3>
+    ${rows.map(settingRow).join('')}
+    <div class="foot">${rows.some(s => s.kind !== 'bool') ? `<button class="btn" data-save="${esc(block.key)}">${TXT.settings.save}</button>` : ''}${say}</div></section>`;
+}
+function settingsTab() {
+  const said = tabState('settings', TXT.settings.title.toLowerCase()); if (said) return said;
+  const d = TAB_DATA.settings.data;
+  return `<div class="sets">${d.blocks.map(b => settingsBlock(b, d.settings, SET.said[b.key])).join('')}
+    <p class="dim">${esc(TXT.settings.note)}</p></div>`;
+}
+/* settings:end */
+async function sendSettings(block, changes, send = settingsSend) {
+  SET.said[block] = { cls: 'dim', text: TXT.settings.saving }; render();
+  try {
+    const answer = await send({ method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-Agentctl-Action': 'settings' }, body: JSON.stringify(changes) });
+    if (!answer.ok) throw new Error(`${(await answer.text()).trim().slice(0, 300) || `HTTP ${answer.status}`}`);
+    TAB_DATA.settings.data = await answer.json(); TAB_DATA.settings.at = Date.now();
+    SET.rev += 1; SET.said[block] = { cls: 'g', text: TXT.settings.saved };
+    load();  // serve rebuilds the snapshot after a write: the pause's banner, within seconds
+    render(); return true;
+  } catch (err) { SET.said[block] = { cls: 'r', text: TXT.settings.refused(err.message || String(err)) }; }
+  render(); return false;
+}
+const settingsSend = request => fetch('settings', request);
+function saveSettings(block) {
+  const d = TAB_DATA.settings.data; if (!d) return;
+  const typed = Object.fromEntries([...document.querySelectorAll(`[data-setting][data-block="${block}"]`)].map(el => [el.dataset.setting, el.value]));
+  const asked = settingsChanges(d.settings, typed);
+  if (asked.error) { SET.said[block] = { cls: 'r', text: asked.error }; return render(); }
+  if (!Object.keys(asked.changes).length) { SET.said[block] = { cls: 'dim', text: TXT.settings.unchanged }; return render(); }
+  return sendSettings(block, asked.changes);
+}
+async function loadTab() {
+  const name = tabOf(location.hash), d = TAB_DATA[name];
+  if (!d || Date.now() - d.at < 5000) return;
+  d.at = Date.now();
+  try {
+    const answer = await fetch(tabUrl(name), { cache: 'no-store', credentials: 'same-origin' });
+    if (!answer.ok) throw new Error(`HTTP ${answer.status} ${(await answer.text()).trim().slice(0, 200)}`.trim());
+    d.data = await answer.json(); d.failed = null;
+  } catch (err) { d.failed = err.message || String(err); }
+  if (DATA && DATA.built_at != null) render();
+}
+addEventListener('hashchange', () => { if (DATA && DATA.built_at != null) render(); loadTab(); });
+
+/* ---------- page ---------- */
+/* quota:begin — the gauges' figures (#822, #823, #848). On the page a gauge
+   is its name and its bar (the operator, 30/09): `text` is the short value a phone
+   shows under it, `rows` the whole reading — value, threshold, reset,
+   projection, age, or why it is unknown — that the hover detail lays out.
+   Never a number the snapshot does not carry. */
+const int = n => Math.round(n).toLocaleString('en-US');
+function untilReset(seconds) {
+  const m = Math.max(0, Math.floor(seconds / 60)), h = Math.floor(m / 60), d = Math.floor(h / 24);
+  if (d) return `${d}d${h % 24}h`;
+  if (h) return `${h}h${String(m % 60).padStart(2, '0')}`;
+  return `${m}min`;
+}
+function duration(seconds) {
+  const m = Math.max(0, Math.floor(seconds / 60)), h = Math.floor(m / 60), d = Math.floor(h / 24);
+  return d ? `${d} d ${h % 24} h` : h ? `${h} h ${m % 60} min` : `${m} min`;
+}
+/* The slope a projection follows (#864), when there is one: the detail says it. */
+const weekSlope = s => s ? [[TXT.tip.slope, TXT.slope(`${s.per_day.toFixed(1)}%`, s)]] : [];
+const minutesSlope = s => s ? [[TXT.tip.slope, TXT.slope(`${int(s.per_day)} min`, s)]] : [];
+const readRow = (at, now) => [TXT.tip.read, at == null ? '?' : TXT.ago(duration(now - at))];
+function quotaGauge(key, label, pct, text, rows, cap = 101) {
+  return { key, label, pct, cls: pct == null ? 'dim' : pct >= cap ? 'r' : pct >= 90 ? 'y' : 'g',
+    text: pct == null ? TXT.unknown : text, rows };
+}
+const unknownGauge = (key, label, why) => quotaGauge(key, label, null, '', [[TXT.tip.why, why || TXT.unknown]]);
+/* A time of day, local; with its weekday when it is not today's (a week's window). */
+function timeOfDay(t, now) {
+  const d = new Date(t * 1000), hm = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return d.toDateString() === new Date(now * 1000).toDateString() ? hm : `${d.toLocaleDateString('en-GB', { weekday: 'short' })} ${hm}`;
+}
+/* A window past its reset with no reading since (#862): when the new one opened,
+   why it is not read yet, what the previous one ended on, and its end when known. */
+function newWindowGauge(key, label, p, now, running, note) {
+  return { ...quotaGauge(key, label, null, '', [
+    [TXT.tip.why, (running ? TXT.noAnswerYet : TXT.noWorkerReads) + note],
+    [TXT.tip.previous, TXT.percentAt(Math.round(p.used_percent), timeOfDay(p.seen_at, now))],
+    ...(p.next_resets_at == null ? [] : [[TXT.tip.resets, TXT.around(timeOfDay(p.next_resets_at, now))]])]),
+    /* past the window after it, when the current one opened is not known */
+    text: (p.next_resets_at == null ? TXT.staleWindow : TXT.newWindow)(timeOfDay(p.ended_at, now)) };
+}
+function claudeGauge(key, label, w, now, why, { cap = 101, previous = null, running = 0, note = '' } = {}) {
+  if (!w && previous) return newWindowGauge(key, label, previous, now, running, note);
+  if (!w) return unknownGauge(key, label, why);
+  const pct = Math.round(w.used_percent), reset = w.resets_at - now;
+  return quotaGauge(key, label, w.used_percent, `${pct}% · ${untilReset(reset)}`, [
+    [TXT.tip.used, `${pct}%`],
+    [TXT.tip.threshold, cap <= 100 ? TXT.noNewWorker(cap) : TXT.turnsYellow(90)],
+    [TXT.tip.resets, TXT.inSpan(duration(reset))],
+    ...(w.projected_percent == null ? [] : [[TXT.tip.projected, TXT.projectedPercent(Math.round(w.projected_percent))]]),
+    ...weekSlope(w.slope),
+    readRow(w.seen_at, now)], cap);
+}
+function actionsGauge(a, now) {
+  if (!a || a.used_percent == null) return unknownGauge('actions', TXT.gauge.actions, a && a.error);
+  const pct = Math.round(a.used_percent), reset = a.resets_at - now;
+  return quotaGauge('actions', TXT.gauge.actions, a.used_percent, `${int(a.used_minutes)}/${int(a.included_minutes)}min · ${pct}% · ${untilReset(reset)}`, [
+    [TXT.tip.used, TXT.minutesOf(int(a.used_minutes), int(a.included_minutes), pct)],
+    [TXT.tip.threshold, TXT.includedMinutes(int(a.included_minutes))],
+    [TXT.tip.resets, TXT.inSpan(duration(reset))],
+    ...(a.projected_minutes == null ? [] : [[TXT.tip.projected, TXT.projectedMinutes(int(a.projected_minutes), a.projected_minutes > a.included_minutes)]]),
+    ...minutesSlope(a.slope),
+    readRow(a.read_at, now)]);
+}
+/* The CPU is measured by serve's history cycle (#836): busy share over the last minute. */
+const cpuGauge = (pct, at, now) => pct == null ? unknownGauge('cpu', TXT.gauge.cpu, TXT.cpuWhy)
+  : quotaGauge('cpu', TXT.gauge.cpu, pct, `${Math.round(pct)}%`, [[TXT.tip.busy, TXT.cpuBusy(Math.round(pct))], [TXT.tip.threshold, TXT.turnsYellow(90)], readRow(at, now)], 90);
+/* The one detail every gauge and every chart mark opens (#859): its name, then its rows. */
+const tipEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* a row is [name, value] or [name, value, 'n']: a figure, right-aligned in its column */
+const tipHtml = g => `<b>${tipEsc(g.label)}</b><dl>${g.rows.map(([k, v, n]) => `<dt>${tipEsc(k)}</dt><dd${n ? ' class="n"' : ''}>${tipEsc(v)}</dd>`).join('')}</dl>`;
+/* quota:end */
+/* tokens:begin — tokens in thousands, everywhere (the operator, 01/10): « 297,897 k tokens », « 4 k tokens » — read by the cards, the panels and the details (#865) */
+const tokens = n => TXT.tokens(n == null ? '?' : `${int(n / 1e3)} k`);
+/* a detail's token rows: each category, then the total — figures in a right-aligned column (`n`) */
+const tokenRows = (kinds, total) => [...kinds.map((v, i) => [TXT.kinds[i], tokens(v), 'n']), [TXT.tip.total, tokens(total), 'n']];
+/* input, cache written, cache read, output (#859): stacked in this order, here and in a delivered PR's panel */
+const KINDS = ['k1', 'k2', 'k3', 'k4'];
+/* tokens:end */
+/* level:begin — a worker's model and effort (#2252): asked at its last start, sent as its log says; a gap is red */
+const levelSide = (d, k) => (d && d[k]) || '?';
+const levelGap = w => !!((w.model && w.model.differs) || (w.effort && w.effort.differs));
+function levelText(w) {
+  const m = w.model || {}, e = w.effort || {};
+  const asked = `${levelSide(m, 'asked')} · ${levelSide(e, 'asked')}`, seen = `${levelSide(m, 'seen')} · ${levelSide(e, 'seen')}`;
+  if (m.asked == null && e.asked == null) return m.seen == null && e.seen == null ? TXT.unknown : TXT.level.seenOnly(seen);
+  if (levelGap(w)) return TXT.level.gap(asked, seen);
+  if (m.seen == null || e.seen == null) return TXT.level.notSeen(asked, seen);
+  return asked;
+}
+/* where each asked value comes from: its label, the default, or why the default stood */
+const levelWhy = w => [w.model, w.effort].filter(d => d && d.asked != null)
+  .map(d => d.anomaly ? `${d.asked}: ${d.anomaly}` : d.label ? `${TXT.level.label} ${d.label}` : `${d.asked}: ${TXT.level.byDefault}`).join(' · ');
+const levelMark = w => !w.model && !w.effort ? ''
+  : `<span class="lvl${levelGap(w) ? ' r' : ''}" title="${esc(`${levelText(w)} — ${TXT.level.tip}`)}">${esc(levelGap(w) ? `≠ ${levelText(w)}` : levelText(w))}</span>`;
+/* level:end */
+/* tip:begin — when the detail shows (#848, every chart since #859): on hover, until the mouse leaves;
+   on a touch screen a tap shows it and it closes by itself (the app's
+   connection light, #844). No click, no « click elsewhere » to arm. */
+const TOUCH_TIP_MS = 4000;
+function detailTip({ show, hide, later, cancel }) {
+  let open = null, timer = null;
+  const stop = () => { if (timer != null) cancel(timer); timer = null; };
+  return {
+    get open() { return open; },
+    enter(key, touch = false) {
+      stop(); open = key; show(key);
+      if (touch) timer = later(() => { timer = null; open = null; hide(); }, TOUCH_TIP_MS);
+    },
+    leave(touch = false) { if (touch || open == null) return; stop(); open = null; hide(); },
+    refresh() { if (open != null) show(open); },
+  };
+}
+/* tip:end */
+/* The VPS cleaner's last pass (#1726): what it did, and only what it could not do in red. */
+function cleanupRows(c) {
+  if (!c) return [[TXT.tip.cleanup, TXT.noCleanup]];
+  return [[TXT.tip.cleanup, TXT.cleanupSaid(c.at, c.counts)], ...c.alerts.map(a => [TXT.tip.notCleaned, a])];
+}
+function gauges(v, readAt, workers) {
+  const ram = v.memory_available_mb, total = v.memory_total_mb, q = v.quota, c = v.claude_quota || {}, t = now();
+  const prev = c.previous || {}, running = workers.filter(w => w.provider === 'claude' && w.state === 'active').length;
+  const gb = mb => (mb / 1024).toFixed(1);
+  const diskPct = v.disk_total_kb ? 100 - v.disk_available_kb / v.disk_total_kb * 100 : null;
+  const declared = q.used_percent == null ? '' : TXT.declared(q.used_percent);
+  const items = [
+    /* RAM, CPU and disk all say what is TAKEN (the operator, 30/09): every bar fills as it is used; what is free is in the detail. */
+    ram != null && total ? { ...quotaGauge('ram', TXT.gauge.ram, (total - ram) / total * 100, `${gb(total - ram)}/${gb(total)}${TXT.gb}`,
+      [[TXT.tip.taken, `${TXT.ofGb(gb(total - ram), gb(total))} (${Math.round((total - ram) / total * 100)}%)`], [TXT.tip.free, `${gb(ram)} ${TXT.gb}`], readRow(readAt, t)]), cls: 'g' }
+      : unknownGauge('ram', TXT.gauge.ram, TXT.unreadable),
+    cpuGauge(v.cpu_percent, v.cpu_at, t),
+    diskPct == null ? unknownGauge('disk', TXT.gauge.disk, TXT.unreadable)
+      : { ...quotaGauge('disk', TXT.gauge.disk, diskPct, `${Math.round(diskPct)}%`, [[TXT.tip.taken, `${Math.round(diskPct)}%`],
+        [TXT.tip.free, `${gb(v.disk_available_kb / 1024)} ${TXT.gb}`], [TXT.tip.threshold, TXT.alertAt(90)], ...cleanupRows(v.cleanup), readRow(readAt, t)]),
+        cls: diskPct > 90 || (v.cleanup && v.cleanup.alerts.length) ? 'r' : 'y' },
+    claudeGauge('claude5h', TXT.gauge.fiveHours, c.five_hour, t, c.error, { previous: prev.five_hour, running }),
+    claudeGauge('claudeweek', TXT.gauge.week, c.seven_day, t, (c.error || TXT.unknown) + declared,
+      { cap: q.cap_percent, previous: prev.seven_day, running, note: declared }),
+    actionsGauge(v.actions_quota, t),
+  ];
+  return items.map(g => `<span class="gauge" tabindex="0" ${tipAttr(`gauge:${g.key}`, g.label, g.rows)} aria-describedby="tip"><span class="dim">${esc(g.label)}</span><span class="bar ${g.cls}">${g.pct == null ? '??????????' : bar(g.pct)}</span><span class="val">${esc(g.text)}</span></span>`).join('');
+}
+/* The detail under what it belongs to — a gauge, a bar, a point — kept inside the window. */
+const TIP = detailTip({
+  show: key => { const g = TIPS[key], at = document.querySelector(`[data-tip="${CSS.escape(key)}"]`), tip = $('#tip');
+    if (!g || !at) { tip.hidden = true; return; }
+    tip.innerHTML = tipHtml(g); tip.hidden = false;
+    const r = at.getBoundingClientRect();
+    tip.style.top = `${r.bottom + scrollY + 6}px`;
+    tip.style.left = `${Math.max(8, Math.min(r.left, innerWidth - tip.offsetWidth - 8)) + scrollX}px`; },
+  hide: () => { $('#tip').hidden = true; },
+  later: (f, ms) => setTimeout(f, ms), cancel: clearTimeout });
+const tipAt = e => e.target instanceof Element ? e.target.closest('[data-tip]') : null;
+document.addEventListener('pointerover', e => { const g = tipAt(e); if (g && e.pointerType !== 'touch') TIP.enter(g.dataset.tip); });
+document.addEventListener('pointerout', e => { const g = tipAt(e), to = e.relatedTarget instanceof Element ? e.relatedTarget.closest('[data-tip]') : null;
+  if (g && e.pointerType !== 'touch' && !g.contains(e.relatedTarget) && !(to && to.dataset.tip === g.dataset.tip)) TIP.leave(); });
+document.addEventListener('pointerdown', e => { const g = tipAt(e); if (g && e.pointerType === 'touch') TIP.enter(g.dataset.tip, true); });
+/* the keyboard's focus shows it too — not a tap's, which would stop its clock */
+let KEYED = false;
+document.addEventListener('focusin', e => { const g = tipAt(e); KEYED = Boolean(g && g.matches(':focus-visible')); if (KEYED) TIP.enter(g.dataset.tip); });
+document.addEventListener('focusout', e => { if (KEYED && tipAt(e)) { KEYED = false; TIP.leave(); } });
+/* The vertical cursor (#2050): the pointer anywhere over a chart, a finger touching then
+   sliding (the page still scrolls up and down), or Tab then ← → (Escape closes). One at a
+   time, by its chart's key and its day — drawn again after each render: a refresh keeps it. */
+let CURSOR = null;  // { key, i, stop } on a day, { key, vx } along a projection's dashes
+function drawCursor() {
+  document.querySelectorAll('svg[data-chart] .cursor').forEach(g => { if (g.firstChild) g.textContent = ''; });
+  document.querySelectorAll('.xtag:not([hidden])').forEach(t => { t.hidden = true; });
+  const svg = CURSOR && document.querySelector(`svg[data-chart="${CSS.escape(CURSOR.key)}"]`), m = CURSOR && MODELS[CURSOR.key];
+  if (!svg || !m) return;
+  const n = countOf(m), kept = [...Array(n).keys()].find(i => stopOf(m, i) === CURSOR.stop);
+  const r = CURSOR.vx != null ? readAt(m, CURSOR.vx) : readIndex(m, kept ?? clampIndex(CURSOR.i, n));
+  svg.querySelector('.cursor').innerHTML = cursorSvg(r);
+  const tag = svg.parentNode.querySelector('.xtag');
+  tag.innerHTML = cursorHtml(r); tag.hidden = false;
+  const x = r.x * svg.getBoundingClientRect().width / svg.viewBox.baseVal.width, room = svg.parentNode.clientWidth, w = tag.offsetWidth;
+  const right = x + 10 + w <= room || room - x >= x;  // beside it, on its right; on its left at the right edge
+  tag.style.left = `${right ? Math.min(x + 10, room - w) : Math.max(0, x - 10 - w)}px`;
+}
+const chartAt = e => e.target instanceof Element ? e.target.closest('svg[data-chart]') : null;
+function cursorFollow(e) {
+  const svg = chartAt(e), m = svg && MODELS[svg.dataset.chart]; if (!m) return;
+  const rect = svg.getBoundingClientRect(), vx = (e.clientX - rect.left) / rect.width * svg.viewBox.baseVal.width, r = readAt(m, vx), key = svg.dataset.chart;
+  if (!r.pj && CURSOR && CURSOR.key === key && CURSOR.i === r.i) return;  // the same day: nothing to draw again
+  CURSOR = r.pj ? { key, vx } : { key, i: r.i, stop: stopOf(m, r.i) };
+  drawCursor();
+}
+document.addEventListener('pointermove', cursorFollow);
+document.addEventListener('pointerdown', e => { if (chartAt(e)) cursorFollow(e); else if (CURSOR && e.pointerType === 'touch') { CURSOR = null; drawCursor(); } });
+document.addEventListener('pointerout', e => { const svg = chartAt(e);
+  if (svg && e.pointerType !== 'touch' && !svg.contains(e.relatedTarget) && !svg.matches(':focus-visible')) { CURSOR = null; drawCursor(); } });
+document.addEventListener('keydown', e => { const svg = chartAt(e), m = svg && MODELS[svg.dataset.chart]; if (!m) return;
+  if (!['ArrowLeft', 'ArrowRight', 'Escape'].includes(e.key)) return;
+  const on = CURSOR && CURSOR.key === svg.dataset.chart && CURSOR.i != null ? CURSOR.i : null, i = stepIndex(on, countOf(m), e.key);
+  CURSOR = i == null ? null : { key: svg.dataset.chart, i, stop: stopOf(m, i) }; e.preventDefault(); drawCursor(); });
+document.addEventListener('focusout', e => { const svg = chartAt(e); if (svg && CURSOR && CURSOR.key === svg.dataset.chart) { CURSOR = null; drawCursor(); } });
+/* cycle:begin — the page follows the server's 60-second cycle (the operator, 30/09):
+   the age ticks every second, counted on the SERVER's clock (a phone's may be
+   off), and the page asks again just after the next snapshot is built. */
+const CYCLE_S = 60;
+function snapshotAge(d, nowS) {
+  if (d.served_at != null && d.received_at != null) return Math.max(0, d.served_at - d.built_at + (nowS - d.received_at));
+  return Math.max(0, nowS - d.built_at);
+}
+/* now on the server's clock: the snapshot's build, plus its age */
+const serverNow = () => DATA.built_at + snapshotAge(DATA, Date.now() / 1000);
+const nextLoadIn = (age, building) => building ? 2 : Math.max(1, CYCLE_S + 1 - age);
+function ageText(seconds) {
+  const s = Math.floor(seconds);
+  return TXT.ago(s < 120 ? `${s} s` : s < 7200 ? `${Math.floor(s / 60)} min` : `${Math.floor(s / 3600)} h`);
+}
+/* cycle:end */
+function schedule(seconds) { clearTimeout(NEXT); NEXT_AT = Date.now() + seconds * 1000; NEXT = setTimeout(load, seconds * 1000); }
+const updating = () => LOADING || Boolean(DATA && DATA.building);  // a fetch in flight, or the server still building
+const UPDATING = ` · <span class="y">${TXT.updating}</span>`;
+function liveLine() {
+  if (!DATA) return FAILED ? `<span class="r">✗</span> ${TXT.snapshotUnreadable(esc(FAILED))}`
+    : `${TXT.loading}${updating() ? TXT.firstBuilding : ''}`;
+  const stale = FAILED ? ` · <span class="r">${TXT.refreshFailed(esc(FAILED))}</span>` : '';
+  const broken = DATA.build_error ? ` · <span class="r">${TXT.rebuildFailed(esc(DATA.build_error))}</span>` : '';
+  const gh = DATA.github.issues === 'ok' ? '' : ` · <span class="r">${TXT.githubUnreadable}</span>`;
+  const age = snapshotAge(DATA, Date.now() / 1000);
+  if (REMEMBERED) return `<span class="y">●</span> ${TXT.remembered(ageText(age))}${updating() ? TXT.updatingShort : ''}${stale}${gh}`;
+  const next = updating() ? UPDATING : TXT.nextIn(Math.max(0, Math.ceil((NEXT_AT - Date.now()) / 1000)));
+  return `<span class="g">●</span> ${TXT.live(ageText(age), next)}${stale}${broken}${gh}`;
+}
+/* The Refresh button (#821): asks the server for a newer snapshot now; the
+   server hears it once per 10 s, however many clicks. */
+const refreshButton = () => `<button class="refresh" data-refresh aria-label="${TXT.refresh}" title="${TXT.refreshTitle}" ${updating() ? 'disabled' : ''}><span class="ic" aria-hidden="true">⟳</span> ${TXT.refresh}</button>`;
+const showLive = () => { const b = $('[data-refresh]'); if (b) b.disabled = updating();
+  const l = $('#live'); if (l) l.innerHTML = liveLine(); else if (!DATA) $('#app').innerHTML = `<div class="live">${liveLine()}</div>`; };
+
+/* morph:begin — the page updated in place (#820). The new HTML is parsed
+   aside, then laid over the live tree: a node that stays keeps its identity
+   (and so the scroll, the focus, the eye's place); only what differs is
+   touched. Children match by `data-key` when they carry one, else in order. */
+const keyOf = n => n.nodeType === 1 ? n.getAttribute('data-key') : null;
+function morph(into, from) {
+  const keyed = new Map(), loose = [];
+  for (const n of [...into.childNodes]) { const k = keyOf(n); if (k != null) keyed.set(k, n); else loose.push(n); }
+  const wanted = [...from.childNodes];
+  let next = 0;
+  wanted.forEach((n, i) => {
+    const k = keyOf(n);
+    let keep = k != null ? keyed.get(k) : loose[next++];
+    if (k != null) keyed.delete(k);
+    if (keep && (keep.nodeType !== n.nodeType || keep.nodeName !== n.nodeName)) keep = undefined;
+    const node = keep ? patch(keep, n) : n;
+    const at = into.childNodes[i];
+    if (at !== node) into.insertBefore(node, at || null);
+  });
+  while (into.childNodes.length > wanted.length) into.removeChild(into.childNodes[wanted.length]);
+}
+function patch(node, like) {
+  if (node.nodeType !== 1) { if (node.nodeValue !== like.nodeValue) node.nodeValue = like.nodeValue; return node; }
+  for (const { name } of [...node.attributes]) if (like.getAttribute(name) === null) node.removeAttribute(name);
+  for (const { name, value } of [...like.attributes]) if (node.getAttribute(name) !== value) node.setAttribute(name, value);
+  morph(node, like);
+  return node;
+}
+/* morph:end */
+function render() {
+  const open = [...document.querySelectorAll('#panel.open [data-open]')].map(el => el.dataset.open);
+  REG = Object.fromEntries(open.filter(id => REG[id]).map(id => [id, REG[id]]));
+  const post = (area, name, count, body) => `<section class="st" data-st="${area}" data-key="${area}" ${area.startsWith('g-') ? '' : `style="grid-area:${area}"`}><h3><span>${name}</span><b>${count}</b></h3>${body}</section>`;
+  const next = document.createElement('template');
+  const tab = tabOf(location.hash);
+  next.innerHTML = `
+  <div class="hdr">
+    <div><div class="brand"><span class="acc">◆</span>${esc(DATA.repo)} · ${TXT.factory}</div><div class="live"><span id="live">${liveLine()}</span>${refreshButton()}</div></div>
+    <a class="gear ${tab === 'settings' ? 'on' : ''}" href="#settings" aria-label="${TXT.settings.title}" title="${TXT.settings.title}" ${tab === 'settings' ? 'aria-current="page"' : ''}>⚙&#xFE0E;</a></div>
+  ${DATA.queue_paused ? `<div class="paused" data-key="paused">${TXT.settings.paused} <a href="#settings">${TXT.settings.title}</a></div>` : ''}
+  <div class="frame" data-key="frame"><div class="gauges">${gauges(DATA.vps, DATA.built_at, DATA.workers)}</div></div>
+  <nav class="tabs" data-key="tabs">${TABS.map(([id, old]) => `<a class="tab ${id === tab ? 'on' : ''}" href="#${id}" ${id === tab ? 'aria-current="page"' : ''}>${TXT.tabs[old]}</a>`).join('')}</nav>
+  ${tab === 'settings' ? settingsTab() : tab === 'measures' ? measuresTab() : tab === 'github' ? githubTab(post) : factoryTab(post)}`;
+  morph($('#app'), next.content);
+  refreshPanel();
+  layout();
+  drawCursor();  // the cursor stays where it was, on the fresh figures (#2050)
+  TIP.refresh();  // an open detail follows the fresh figures
+}
+function layout() { fitPlan(); evenCards(); document.querySelectorAll('.tks-row').forEach(fitTickets); fitCharts(); }
+/* A chart is drawn as wide as its column (#2048): its axis text stays 10 px on screen, three
+   columns or one. A column grown or shrunk by more than a few pixels draws them again — once:
+   the redraw does not fit again (a scrollbar come with it waits for the next resize or cycle). */
+let FITTING = false;
+function fitCharts() {
+  const card = document.querySelector('.charts > .chart'); if (!card || FITTING) return;
+  const css = getComputedStyle(card), width = Math.round(card.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight));
+  if (width < 200 || Math.abs(width - W) <= 4) return;
+  W = width; FITTING = true;
+  try { render(); } finally { FITTING = false; }
+}
+
+/* ---------- side panel ---------- */
+const ticketRows = w => (w.tickets || []).map(t => `<button class="li" data-open="${reg({ kind: 'ticket', t, w })}"><span class="mark tk ${esc(t.status)}" style="border:0;background:none;min-width:0">${GLYPH[t.status]}</span><span class="num">#${t.number}</span><span class="tt">${esc(t.title)}</span></button>`).join('');
+/* deliver:begin — a delivered PR's panel (#860): what it cost, took, ran and
+   changed. Unknown is said « unknown », never a zero. */
+const unknownDd = `<span class="dim">${TXT.unknown}</span>`;
+const known = (v, f = String) => v == null ? unknownDd : f(v);
+const lapse = (a, b) => a == null || b == null ? unknownDd : duration(b - a);
+const minutes = m => TXT.minutesOf1(m.toFixed(1));
+function deliveryOf(d) {
+  const s = DELIVERY[d.number], links = gh(d.url, TXT.open.pr);
+  if (!s) return `<div class="dim">${TXT.loading}</div>${links}`;
+  if (s.failed || s.data.error) return `<div class="r">${TXT.statsUnreadable(esc(s.failed || s.data.error))}</div>${links}`;
+  const p = s.data.pull;
+  if (!p) return `<div class="dim">${TXT.notRecorded}</div>${links}`;
+  const t = p.tokens, c = p.ci, z = p.size, w = p.times;
+  const kinds = t ? [t.input, t.cache_write, t.cache_read, t.output] : [];
+  const rows = t ? tokenRows(kinds, t.total) : [];
+  const sum = kinds.reduce((a, v) => a + v, 0) || 1;
+  const bar = t ? `<div class="kbar" ${tipAttr(`delivered:${p.number}`, TXT.tokensOfSpec, rows)}>${kinds.map((v, i) => `<span class="${KINDS[i]}" style="width:${(v / sum * 100).toFixed(2)}%"></span>`).join('')}</div>` : '';
+  return `<div class="sec">${TXT.statsTokens}</div>${bar}
+    <dl class="nums">${t ? rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd class="n">${esc(v)}</dd>`).join('') : `<dt>${TXT.tip.total}</dt><dd>${unknownDd}</dd>`}</dl>
+    <div class="sec">${TXT.statsTimes}</div>
+    <dl><dt>${TXT.dt.specToPr}</dt><dd>${lapse(w.published, w.opened)}</dd><dt>${TXT.dt.prToMerge}</dt><dd>${lapse(w.opened, w.merged)}</dd>
+      <dt>${TXT.dt.mergeToProd}</dt><dd>${w.prod == null ? `<span class="dim">${TXT.notInProd}</span>` : duration(w.prod - w.merged)}</dd>
+      <dt>${TXT.dt.specToProd}</dt><dd>${lapse(w.published, w.prod)}</dd></dl>
+    <div class="sec">${TXT.statsCi}</div>
+    <dl><dt>${TXT.dt.runs}</dt><dd>${known(c.runs)}${c.first_green == null ? '' : c.first_green ? ` · <span class="g">${TXT.greenAtOnce}</span>` : ` · <span class="y">${TXT.notGreenAtOnce}</span>`}</dd>
+      <dt>${TXT.dt.ciMinutes}</dt><dd>${known(c.minutes, m => `${TXT.machine.github} ${minutes(m.github)} · ${TXT.machine.vps} ${minutes(m.vps)}`)}</dd>
+      <dt>${TXT.dt.failedTests}</dt><dd>${c.failed_tests == null || c.runs == null ? unknownDd : c.failed_tests.length ? c.failed_tests.map(x => `<div>${testName(x)}</div>`).join('') : TXT.none}</dd></dl>
+    <div class="sec">${TXT.statsSize}</div>
+    <dl><dt>${TXT.dt.files}</dt><dd>${known(z.changed_files)}</dd>
+      <dt>${TXT.dt.lines}</dt><dd>${z.additions == null || z.deletions == null ? unknownDd : `<span class="g">+${int(z.additions)}</span> <span class="r">−${int(z.deletions)}</span>`}</dd>
+      <dt>${TXT.dt.closedIssues}</dt><dd>${known(z.closed_issues)}</dd></dl>
+    ${links}${p.spec ? gh(issueUrl(p.spec.number), TXT.open.spec) : ''}${c.last_run_url ? gh(c.last_run_url, TXT.open.ci) : ''}`;
+}
+/* deliver:end */
+const excerpt = text => text == null ? `<div class="dim">${TXT.excerptUnreadable}</div>`
+  : text ? `<pre class="excerpt">${esc(text)}</pre><div class="dim">…</div>` : `<div class="dim">${TXT.emptyBody}</div>`;
+/* A chantier's panel (#1819), read again from the snapshot at each cycle: its card's column decides
+   which section comes first, framed in blue; the others follow in their fixed order. */
+/* A machine's red re-run for this pull request (#1792): requested until GitHub shows the attempt (#1919). */
+const rerunLines = pull => (DATA.machine_reruns || []).filter(r => r.pull === pull).map(r => `<div class="dim">${esc(r.text)}</div>`).join('');
+const chantierOf = spec => DATA.workers.find(w => w.spec === spec) || (DATA.queue || []).find(s => s.number === spec) || null;
+function chantierPanel(o) {
+  const w = chantierOf(o.spec), P = TXT.panel;
+  if (!w) return `<div class="dim">${P.col[o.col] || ''}</div><h2>#${o.spec}</h2>${gh(issueUrl(o.spec), TXT.open.spec)}`;
+  const started = o.col !== 'queue', p = started ? prOf(w) : null, c = w.current_ticket, q = DATA.merge_queue;
+  const pull = p ? p.number : w.pull_request ? w.pull_request.number : null;
+  const S = {
+    work: !started ? `<div class="dim">${P.notStarted}</div>${nextStart(DATA.relauncher, DATA.queue, serverNow())}`
+      : `<dl><dt>${TXT.dt.state}</dt><dd>${stateOf(w)}</dd>
+        <dt>${TXT.dt.ticket}</dt><dd>${c ? `#${c.number} ${esc(c.title)} ${c.declared ? TXT.declaredTicket : `<span class="dim">${TXT.deduced}</span>`}` : w.tickets === null ? TXT.unknown : '—'}</dd>
+        ${why(w) ? `<dt>${TXT.dt.why}</dt><dd class="r">${why(w)}</dd>` : ''}
+        <dt>${TXT.dt.activity}</dt><dd>${ago(w.last_activity)}</dd><dt>${TXT.dt.tokens}</dt><dd>${tokens(w.tokens)}</dd>
+        <dt>${TXT.dt.level}</dt><dd${levelGap(w) ? ' class="r"' : ''} title="${esc(TXT.level.tip)}">${esc(levelText(w))}${levelWhy(w) ? ` <span class="dim">${esc(levelWhy(w))}</span>` : ''}</dd>
+        <dt>${TXT.dt.branch}</dt><dd>${esc(w.branch ?? '—')}</dd><dt>${TXT.dt.since}</dt><dd>${w.started_at ? duration(now() - w.started_at) : '?'}</dd></dl>
+        ${w.state === 'done' ? `<div class="dim">${TXT.mergedStop}</div><div class="dim">${TXT.runOnVps}</div><code>tracerworks stop ${w.spec}</code>` : ''}`,
+    tickets: `${ticketBlocks(w)}<div style="margin-top:8px">${ticketRows(w)}</div>`,
+    ci: p ? `<dl><dt>PR</dt><dd><button class="acc" data-open="${reg({ kind: 'pr', p })}">#${p.number}</button> ${esc(p.title)}</dd>
+        <dt>${TXT.dt.ci}</dt><dd>${ciOf(p)}${p.ci_since ? TXT.forSpan(duration(now() - p.ci_since)) : ''}</dd></dl>
+        ${p.ci_jobs ? p.ci_jobs.map(jobLine).join('') : ''}${rerunLines(p.number)}${gh(p.url, TXT.open.pr)}${p.ci_url ? gh(p.ci_url, TXT.open.ci) : ''}`
+      : pull ? `<dl><dt>PR</dt><dd>#${pull}</dd><dt>${TXT.dt.ci}</dt><dd>${ciOf(w.pull_request)}</dd></dl>` : `<div class="dim">${P.noPr}</div>`,
+    mq: q == null ? `<div class="r">${TXT.kanban.mqUnknown}</div>`
+      : `<div>${esc(queueLine(q, pull))}${queuePlace(q, pull) === 'test' && q.testing.started_at ? TXT.forSpan(duration(now() - q.testing.started_at)) : ''}</div>
+        ${queuePlace(q, pull) === 'test' && q.testing.run_url ? gh(q.testing.run_url, TXT.open.run) : ''}`,
+    story: w.history && w.history.length ? `${w.history.map(h => `<div class="dim">${esc(h)}</div>`).join('')}<code>tracerworks history ${w.spec}</code>` : `<div class="dim">${P.noStory}</div>`,
+    spec: `<div>${(w.labels || []).map(l => `<span class="lab">${esc(l)}</span>`).join('')}</div>${excerpt(w.excerpt)}${gh(issueUrl(w.spec), TXT.open.spec)}`,
+  };
+  const [focus, ...rest] = sectionsFor(o.col, queuePlace(q, pull) === 'test');
+  const sec = (k, top) => `<div class="${top ? 'focus' : ''}" data-key="sec-${k}"><div class="sec">${P.sec[k]}${top && P.sec[k] !== P.col[o.col] ? ` · ${P.col[o.col]}` : ''}</div>${S[k]}</div>`;
+  return `<div class="dim">${P.col[o.col]}${w.rank == null ? '' : ` · ${rankText(w.rank)}`}</div><h2>#${w.spec} ${esc(cleanTitle(w.title))}</h2>
+    ${sec(focus, true)}${rest.map(k => sec(k, false)).join('')}`;
+}
+function panelHtml(o) {
+  switch (o.kind) {
+    case 'work': return chantierPanel(o);
+    case 'spec': { const w = o.w;
+      return `<div class="dim">${TXT.spec(esc(w.where))}</div><h2>#${w.spec} ${esc(w.title ?? TXT.titleUnknown)}</h2><div>${(w.labels || []).map(l => `<span class="lab">${esc(l)}</span>`).join('')}</div>
+        <div class="sec">${TXT.specStart}</div>${excerpt(w.excerpt)}
+        <div class="sec">${TXT.ticketsSec}</div>${ticketBlocks(w)}<div style="margin-top:8px">${ticketRows(w)}</div>
+        ${gh(issueUrl(w.spec), TXT.open.spec)}`; }
+    case 'ticket': { const { t, w } = o, c = w.current_ticket;
+      const state = t.status === 'current' ? (c && c.declared ? TXT.currentDeclared : TXT.currentDeduced) : TICKET_TXT[t.status];
+      return `<div class="dim">${TXT.ticketKind}</div><h2>#${t.number} ${esc(t.title)}</h2>
+        <dl><dt>${TXT.dt.state}</dt><dd>${GLYPH[t.status]} ${state}</dd>
+        <dt>${TXT.dt.spec}</dt><dd><button class="acc" data-open="${reg({ kind: 'spec', w })}">#${w.spec} ${esc(w.title ?? '')}</button></dd></dl>
+        <div class="sec">${TXT.ticketStart}</div>${excerpt(t.excerpt)}
+        ${gh(issueUrl(t.number), TXT.open.ticket)}`; }
+    case 'pr': { const p = o.p, c = DATA.control;
+      const jobs = (c.waiting_jobs || []).filter(j => j.pr === p.number).map(j => esc(j.job)).join(', ') || '—';
+      const on = (c.runners || []).filter(r => r.job && r.job.pr === p.number).map(r => `${esc(r.name)} (${esc(r.job.name)})`).join(', ') || '—';
+      return `<div class="dim">${TXT.pullRequest}</div><h2>#${p.number} ${esc(p.title)}</h2>
+        <dl><dt>${TXT.dt.ci}</dt><dd>${ciOf(p)}${p.ci_since ? TXT.forSpan(duration(now() - p.ci_since)) : ''}</dd>
+        <dt>${TXT.dt.waiting}</dt><dd>${jobs}</dd><dt>${TXT.dt.runners}</dt><dd>${on}</dd>
+        <dt>${TXT.dt.autoMerge}</dt><dd>${TXT.autoMerge(p.auto_merge)}</dd>
+        <dt>${TXT.dt.branch}</dt><dd>${esc(p.branch)}</dd><dt>${TXT.dt.spec}</dt><dd>${p.spec ? '#' + p.spec : TXT.noSpec}</dd></dl>
+        ${p.ci_jobs === undefined || (p.ci_jobs && !p.ci_jobs.length) ? '' : `<div class="sec">${TXT.jobsSec}</div>${p.ci_jobs === null ? `<div class="dim">${TXT.jobsUnknown}</div>` : p.ci_jobs.map(jobLine).join('')}`}
+        ${gh(p.url, TXT.open.pr)}${p.ci_url ? gh(p.ci_url, TXT.open.ci) : ''}`; }
+    case 'job': { const j = o.j;
+      return `<div class="dim">${TXT.jobKind}</div><h2>${esc(j.job)}</h2>
+        <dl><dt>${TXT.dt.for}</dt><dd>${prLabel(j.pr, j.branch)}</dd><dt>${TXT.dt.waiting}</dt><dd>${j.since ? duration(now() - j.since) : '?'}</dd></dl>
+        ${gh(j.url, TXT.open.job)}`; }
+    case 'runner': { const r = o.r, j = r.job;
+      return `<div class="dim">${TXT.runnerKind}</div><h2>${esc(r.name)}</h2>
+        <dl><dt>${TXT.dt.state}</dt><dd>${esc(r.status)} · ${r.busy ? TXT.busy : TXT.free}</dd>
+        ${j ? `<dt>${TXT.dt.job}</dt><dd>${esc(j.name)}</dd><dt>${TXT.dt.for}</dt><dd>${prLabel(j.pr, j.branch)}</dd><dt>${TXT.dt.since}</dt><dd>${j.started_at ? duration(now() - j.started_at) : '?'}</dd>` : ''}</dl>
+        ${j ? gh(j.url, TXT.open.job) : gh(`https://github.com/${DATA.repo}/actions`, TXT.open.actions)}`; }
+    case 'run': { const r = o.r;
+      const [, glyph, color, word] = runLook(r);
+      return `<div class="dim">${TXT.runKind(esc(r.workflow))}</div><h2><span class="${color}">${glyph}</span> ${esc(r.title)}</h2>
+        <dl><dt>${TXT.dt.result}</dt><dd>${esc(word)}</dd><dt>${TXT.dt.for}</dt><dd>${prLabel(r.pr, r.branch)}</dd>
+        <dt>${TXT.dt.duration}</dt><dd>${r.duration != null ? duration(r.duration) : '?'}</dd><dt>${TXT.dt.finished}</dt><dd>${ago(r.finished_at)}</dd>
+        <dt>${TXT.dt.runners}</dt><dd>${r.runners ? esc(r.runners.join(', ')) || '—' : TXT.unknown}</dd></dl>
+        ${gh(r.url, TXT.open.run)}`; }
+    case 'delivered': { const d = o.d;
+      return `<div class="dim">${TXT.deliveredKind(when(d.at))}</div><h2><span class="g">✓</span> ${d.kind === 'pr' ? `PR #${d.number}` : '⇪ prod'} ${esc(d.title)}</h2>
+        ${d.kind === 'pr' ? deliveryOf(d) : gh(d.url, TXT.open.deploy)}`; }
+    case 'list':
+      return `<div class="dim">${TXT.fullList}</div><h2>${esc(o.title)} · ${o.items.length}</h2>${o.items.map(o.row).join('')}`;
+  }
+  return '';
+}
+let PANEL = null;  // what the panel shows
+/* A delivered PR's figures (#860), read from the history base when its panel opens. */
+const DELIVERY = {};  // by PR number: { data } | { failed }
+async function loadDelivery(n) {
+  delete DELIVERY[n];
+  try {
+    const answer = await fetch(`delivered.json?pr=${n}`, { cache: 'no-store', credentials: 'same-origin' });
+    if (!answer.ok) throw new Error(`HTTP ${answer.status} ${(await answer.text()).trim().slice(0, 200)}`.trim());
+    DELIVERY[n] = { data: await answer.json() };
+  } catch (err) { DELIVERY[n] = { failed: err.message || String(err) }; }
+  if (PANEL && PANEL.kind === 'delivered' && PANEL.d.number === n) $('#panel .body').innerHTML = panelHtml(PANEL);
+}
+function closePanel() { $('#panel').classList.remove('open'); PANEL = null; }
+/* A PR's panel follows the 60-second cycle (#859): its CI and jobs, read again
+   in place; a PR gone from the list (merged) stays as it was last seen. */
+function refreshPanel() {
+  if (!PANEL || !['pr', 'work'].includes(PANEL.kind) || !$('#panel').classList.contains('open')) return;
+  if (PANEL.kind === 'pr') {
+    const fresh = ((DATA.control && DATA.control.pull_requests) || []).find(p => p.number === PANEL.p.number);
+    if (!fresh) return;
+    PANEL = { kind: 'pr', p: fresh };
+  } else {  // its column as the fresh snapshot has it: started, in CI, in the queue…
+    const w = DATA.workers.find(x => x.spec === PANEL.spec);
+    if (w) PANEL = { ...PANEL, col: PANEL.col === 'mq' && columnOf(w) !== 'dev' ? 'mq' : columnOf(w) };
+  }
+  const next = document.createElement('template'); next.innerHTML = panelHtml(PANEL);
+  morph($('#panel .body'), next.content);
+}
+const starSend = request => fetch('star', request);
+const starAt = e => e.target instanceof Element ? e.target.closest('[data-star]') : null;
+function onStar(e, star) {
+  e.preventDefault(); e.stopPropagation();  // neither the card's panel nor its GitHub link
+  starClick(STARS, Number(star.dataset.star), star.dataset.on === 'true', starSend, () => { if (DATA) render(); }, now());
+}
+document.addEventListener('click', e => {
+  const star = starAt(e); if (star) return onStar(e, star);
+  if (e.target.closest('[data-refresh]')) return load(true);
+  const save = e.target.closest('[data-save]'); if (save) return saveSettings(save.dataset.save);
+  const reset = e.target.closest('[data-reset]'); if (reset) return sendSettings(reset.dataset.block, { [reset.dataset.reset]: null });
+  const days = e.target.closest('[data-days]');
+  if (days) { MEASURE_DAYS = Number(days.dataset.days); Object.assign(TAB_DATA.measures, { data: null, failed: null, at: 0 }); render(); return loadTab(); }
+  if (e.target.closest('[data-close]')) return closePanel();
+  const el = e.target.closest('[data-open]');
+  if (!el) { if (!e.target.closest('#panel')) closePanel(); return; }
+  const o = REG[el.dataset.open]; if (!o) return;
+  e.stopPropagation();
+  PANEL = o;
+  if (o.kind === 'delivered' && o.d.kind === 'pr') loadDelivery(o.d.number);
+  $('#panel .body').innerHTML = panelHtml(o);
+  $('#panel').classList.add('open'); $('#panel').scrollTop = 0;
+});
+document.addEventListener('keydown', e => { const star = starAt(e);
+  const typed = e.target instanceof Element ? e.target.closest('[data-setting]') : null;
+  if (typed && e.key === 'Enter') return saveSettings(typed.dataset.block);
+  if (star && (e.key === 'Enter' || e.key === ' ')) return onStar(e, star);
+  if (e.key === 'Escape' && !chartAt(e)) { closePanel(); TIP.leave(); } });  // on a chart, Escape closes its cursor only
+document.addEventListener('change', e => { const flip = e.target instanceof Element ? e.target.closest('[data-switch]') : null;
+  // refused (429, 503…): the switch goes back to what the file holds
+  if (flip) sendSettings(flip.dataset.block, { [flip.dataset.switch]: flip.checked }).then(ok => { if (!ok) flip.checked = !flip.checked; }); });
+addEventListener('resize', layout);
+
+/* ---------- refresh: every 60 s, and on coming back to the tab ---------- */
+// One shape for a spec, wherever it sits: the panel and the ticket line read it alike.
+function shaped(data) {
+  data.workers.forEach(w => { w.where = TXT.where.atelier; });
+  for (const [specs, where] of [[(data.waiting || {}).specs, TXT.where.waiting], [data.queue, TXT.where.queue]])
+    (specs || []).forEach(s => { s.spec = s.number; s.where = where; s.current_ticket = null; });
+  return data;
+}
+function remembered() {
+  try { const d = JSON.parse(localStorage.getItem(SNAPSHOT_KEY)); return d && d.built_at != null && d.workers ? shaped(d) : null; }
+  catch { return null; }
+}
+/* After a failure, ask again in 10 s rather than a whole cycle. */
+const RETRY_S = 10;
+async function load(fresh = false) {
+  if (LOADING) return;
+  FETCHED = Date.now(); LOADING = true; clearTimeout(NEXT);
+  if (DATA) showLive();
+  try {
+    const answer = await fetch(fresh ? 'snapshot.json?fresh=1' : 'snapshot.json', { cache: 'no-store', credentials: 'same-origin' });
+    if (!answer.ok) throw new Error(`HTTP ${answer.status} ${(await answer.text()).trim().slice(0, 200)}`.trim());
+    const body = await answer.json(); FAILED = null;
+    body.received_at = Date.now() / 1000;
+    if (body.built_at != null) {  // null: the server's first build is under way
+      try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(body)); } catch { /* full: the page still works */ }
+      DATA = shaped(body); REMEMBERED = false;
+      settleStars(STARS, DATA, now());
+    }
+    else if (DATA) DATA.building = true;
+    schedule(body.built_at == null ? 2 : nextLoadIn(snapshotAge(body, body.received_at), body.building));
+  } catch (err) {
+    FAILED = err.message || String(err);
+    schedule(RETRY_S);
+  } finally {
+    LOADING = false;
+    if (DATA && DATA.built_at != null && !FAILED) render(); else showLive();
+    loadTab();  // a tab's curves follow the same cycle
+  }
+}
+setInterval(() => { if (DATA) showLive();  // the age, second by second
+  document.querySelectorAll('#panel [data-since]').forEach(el => { el.textContent = clock(now() - Number(el.dataset.since)); });
+  if (DATA && DATA.built_at != null) document.querySelectorAll('[data-until]').forEach(el => { el.textContent = countdown(Number(el.dataset.until) - serverNow()); }); }, 1000);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { localStorage.setItem(VISIT_KEY, String(Date.now() / 1000)); return; }
+  BASELINE = lastVisit();
+  // Timers sleep with the tab: coming back, ask at once if the cycle has passed.
+  if (Date.now() >= NEXT_AT && Date.now() - FETCHED > 5000) load(); else if (DATA) render();
+});
+DATA = remembered(); REMEMBERED = DATA !== null;
+load();              // in flight from here: the remembered snapshot says « updating… »
+if (DATA) render();  // at once, never an empty page
+</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+﻿2026-09-30T07:30:08.3455121Z Current runner version: '2.337.0'
+2026-09-30T07:30:08.3474645Z Runner name: 'vps-3'
+2026-09-30T07:30:08.3476078Z Runner group name: 'Default'
+2026-09-30T07:30:49.7970637Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,9 @@
+﻿2026-09-30T16:46:19.7505586Z Current runner version: '2.337.0'
+2026-09-30T16:46:19.7528087Z ##[group]Runner Image Provisioner
+2026-09-30T16:46:19.7528659Z Hosted Compute Agent
+2026-09-30T16:50:21.2374166Z tests/integration/test_browser_widget_journey.py::test_the_file_moves_without_a_reload FAILED [ 35%]
+2026-09-30T16:51:34.0853612Z said = ['requestfailed: http://127.0.0.1:50931/api/v1/telemetry/config net::ERR_ABORTED', 'console error: Failed to load reso...ED', 'requestfailed: http://127.0.0.1:50931/api/v1/orgs/sE07cwqIofS1tsT9Us7Sfl9GTTisRT0Y/stores net::ERR_ABORTED', ...]
+2026-09-30T16:51:34.0901885Z said = ['requestfailed: http://127.0.0.1:50931/api/v1/telemetry/config net::ERR_ABORTED', 'console error: Failed to load reso...ED', 'requestfailed: http://127.0.0.1:50931/api/v1/orgs/sE07cwqIofS1tsT9Us7Sfl9GTTisRT0Y/stores net::ERR_ABORTED', ...]
+2026-09-30T16:51:34.0981242Z FAILED tests/integration/test_browser_widget_journey.py::test_the_file_moves_without_a_reload - AssertionError: un clic ailleurs ne ferme pas le détail du voyant
+2026-09-30T16:51:34.2913091Z ======== 1 failed, 33 passed, 8 skipped, 1 warning in 226.24s (0:03:46) ========
+2026-09-30T16:51:34.4870380Z ##[error]Process completed with exit code 1.

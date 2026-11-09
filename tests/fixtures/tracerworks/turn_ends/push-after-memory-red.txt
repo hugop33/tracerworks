@@ -1,0 +1,7 @@
+Ticket #1691 implémenté et commité (`3f2c1ab`), tests unitaires verts en local (412 passed).
+
+Le push a été refusé par le hook d'avant push : `bin/ci` est tombé sur `tests` avec
+« Killed » (processus tué faute de mémoire, 1,2 Go disponibles d'après vps-health.log),
+pas sur un test rouge.
+
+Dis-moi de relancer le push quand la mémoire sera revenue.

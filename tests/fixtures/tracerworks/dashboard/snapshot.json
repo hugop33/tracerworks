@@ -1,0 +1,950 @@
+{
+"generated_at": 1790856984.300911,
+"repo": "acme/widgets",
+"max_workers": 2,
+"github": {
+"issues": "ok",
+"closed": "ok"
+},
+"vps": {
+"memory_available_mb": 6006,
+"memory_total_mb": 11671,
+"disk_available_kb": 27122736,
+"disk_total_kb": 100503408,
+"quota": {
+"provider": "claude",
+"used_percent": null,
+"cap_percent": 80
+},
+"claude_quota": {
+"five_hour": {
+"used_percent": 8,
+"resets_at": 1790872800,
+"seen_at": 1790856984.75949
+},
+"seven_day": {
+"used_percent": 42,
+"resets_at": 1791230400,
+"seen_at": 1790856984.75949,
+"projected_percent": 109.8
+},
+"previous": {},
+"error": null
+},
+"actions_quota": {
+"used_minutes": 126.0,
+"included_minutes": 3000,
+"used_percent": 4.2,
+"resets_at": 1793491200.0,
+"read_at": 1790856375.3193045,
+"error": null,
+"projected_minutes": null
+},
+"cpu_percent": 24.0,
+"cpu_at": 1790856983.142805
+},
+"workers": [
+{
+"spec": 864,
+"title": "Factory — Faster dashboard load",
+"excerpt": "## Problem Statement\n\nA small change that removes a recurring support question.",
+"state": "idle",
+"provider": "claude",
+"branch": "agent/864-factory-projections-par-pente-glissante",
+"pull_request": null,
+"current_ticket": null,
+"blocked_by": null,
+"tickets": [],
+"done": 0,
+"total": 0,
+"last_activity": 1790856984,
+"started_at": 1790856299,
+"tokens": 5277903
+},
+{
+"spec": 865,
+"title": "Factory — Translate the onboarding",
+"excerpt": "## Problem Statement\n\nThe current behaviour surprises people: it should do what the screen says.",
+"state": "active",
+"provider": "claude",
+"branch": "agent/865-factory-le-survol-des-jauges-n-ouvre",
+"pull_request": null,
+"current_ticket": null,
+"blocked_by": null,
+"tickets": [],
+"done": 0,
+"total": 0,
+"last_activity": 1790856984,
+"started_at": 1790856862,
+"tokens": 1525751
+}
+],
+"waiting": {
+"specs": [
+{
+"number": 802,
+"title": "Spec — Weekly digest email",
+"excerpt": "## Problem Statement\n\nA small change that removes a recurring support question.",
+"labels": [
+"ready-for-agent",
+"spec"
+],
+"prioritized": false,
+"created_at": 1790771781,
+"tickets": [],
+"done": 0,
+"total": 0,
+"open_tickets": 0
+},
+{
+"number": 655,
+"title": "Spec — Pagination of the activity feed",
+"excerpt": "## Problem Statement\n\nThe current behaviour surprises people: it should do what the screen says.",
+"labels": [
+"ready-for-agent",
+"spec"
+],
+"prioritized": false,
+"created_at": 1790537105,
+"tickets": [
+{
+"number": 658,
+"title": "Import 1/2 — Import widgets from a spreadsheet",
+"status": "todo",
+"excerpt": "A small change that removes a recurring support question.",
+"closed_at": null
+},
+{
+"number": 659,
+"title": "Export 2/2 — Export the catalogue as CSV",
+"status": "todo",
+"excerpt": "The current behaviour surprises people: it should do what the screen says.",
+"closed_at": null
+}
+],
+"done": 0,
+"total": 2,
+"open_tickets": 2
+},
+{
+"number": 654,
+"title": "Spec — Nightly report of slow pages",
+"excerpt": "## Problem Statement\n\nA small change that removes a recurring support question.",
+"labels": [
+"ready-for-agent",
+"spec"
+],
+"prioritized": false,
+"created_at": 1790537103,
+"tickets": [
+{
+"number": 656,
+"title": "Retry 1/2 — Retry a failed webhook",
+"status": "todo",
+"excerpt": "The current behaviour surprises people: it should do what the screen says.",
+"closed_at": null
+},
+{
+"number": 657,
+"title": "Invite 2/2 — Invite a teammate by link",
+"status": "todo",
+"excerpt": "A small change that removes a recurring support question.",
+"closed_at": null
+}
+],
+"done": 0,
+"total": 2,
+"open_tickets": 2
+}
+],
+"bugs": [
+{
+"number": 791,
+"title": "Rate limit on the public API",
+"labels": [
+"bug",
+"ready-for-agent"
+],
+"created_at": 1790765059,
+"open_tickets": 0
+},
+{
+"number": 765,
+"title": "Audit log of admin changes",
+"labels": [
+"bug",
+"ready-for-agent"
+],
+"created_at": 1790696750,
+"open_tickets": 0
+}
+],
+"tasks": [
+{
+"number": 817,
+"title": "Faster dashboard load",
+"labels": [
+"enhancement",
+"task"
+],
+"created_at": 1790781623,
+"open_tickets": 0
+},
+{
+"number": 766,
+"title": "Keyboard shortcuts in the editor",
+"labels": [
+"task"
+],
+"created_at": 1790697241,
+"open_tickets": 0
+},
+{
+"number": 745,
+"title": "Translate the onboarding",
+"labels": [
+"task"
+],
+"created_at": 1790677767,
+"open_tickets": 0
+}
+],
+"ideas": [
+{
+"number": 417,
+"title": "Two-step sign-in",
+"labels": [
+"idea",
+"question"
+],
+"created_at": 1790106736,
+"open_tickets": 0
+}
+],
+"to_sort": [
+{
+"number": 841,
+"title": "Weekly 5/6 — Weekly digest email",
+"labels": [
+"ready-for-agent",
+"ticket"
+],
+"created_at": 1790790232,
+"open_tickets": 0
+},
+{
+"number": 668,
+"title": "Undo 7/7 — Undo a deleted widget",
+"labels": [
+"ticket"
+],
+"created_at": 1790540570,
+"open_tickets": 0
+}
+]
+},
+"queue": [],
+"control": {
+"pull_requests": [],
+"waiting_jobs": [],
+"runners": [
+{
+"name": "vps-1",
+"status": "online",
+"busy": false,
+"job": null
+},
+{
+"name": "vps-2",
+"status": "online",
+"busy": false,
+"job": null
+},
+{
+"name": "vps-3",
+"status": "online",
+"busy": false,
+"job": null
+}
+],
+"recent_runs": [
+{
+"id": 36858344700,
+"workflow": "CI",
+"title": "Factory — Pagination of the activity feed (#862)",
+"url": "https://github.com/acme/widgets/actions/runs/36858344700",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/862-factory-quota-claude-5-h-dire-nouvelle",
+"started_at": 1790855687,
+"finished_at": 1790855881,
+"duration": 194,
+"runners": [
+"GitHub Actions 1000003263",
+"GitHub Actions 1000003264",
+"GitHub Actions 1000003265"
+]
+},
+{
+"id": 36851147867,
+"workflow": "CI",
+"title": "Health check of the queue",
+"url": "https://github.com/acme/widgets/actions/runs/36851147867",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/857-factory-waiting-on-github-montre-tout",
+"started_at": 1790851550,
+"finished_at": 1790852532,
+"duration": 982,
+"runners": [
+"GitHub Actions 1000003256",
+"GitHub Actions 1000003257",
+"GitHub Actions 1000003258",
+"GitHub Actions 1000003259",
+"GitHub Actions 1000003260",
+"GitHub Actions 1000003261",
+"GitHub Actions 1000003262",
+"vps-1",
+"vps-2",
+"vps-3"
+]
+},
+{
+"id": 36850368834,
+"workflow": "CI",
+"title": "Import widgets from a spreadsheet",
+"url": "https://github.com/acme/widgets/actions/runs/36850368834",
+"conclusion": "cancelled",
+"success": false,
+"pr": null,
+"branch": "agent/857-factory-waiting-on-github-montre-tout",
+"started_at": 1790851094,
+"finished_at": 1790851570,
+"duration": 476,
+"runners": [
+"GitHub Actions 1000003249",
+"GitHub Actions 1000003250",
+"GitHub Actions 1000003251",
+"GitHub Actions 1000003252",
+"GitHub Actions 1000003253",
+"GitHub Actions 1000003254",
+"GitHub Actions 1000003255",
+"vps-1",
+"vps-2",
+"vps-3"
+]
+},
+{
+"id": 36851084122,
+"workflow": "CI",
+"title": "Share a read-only view",
+"url": "https://github.com/acme/widgets/actions/runs/36851084122",
+"conclusion": "cancelled",
+"success": false,
+"pr": null,
+"branch": "agent/857-factory-waiting-on-github-montre-tout",
+"started_at": 1790851514,
+"finished_at": 1790851551,
+"duration": 37,
+"runners": []
+},
+{
+"id": 36849434068,
+"workflow": "CI",
+"title": "Export the catalogue as CSV",
+"url": "https://github.com/acme/widgets/actions/runs/36849434068",
+"conclusion": "cancelled",
+"success": false,
+"pr": null,
+"branch": "agent/857-factory-waiting-on-github-montre-tout",
+"started_at": 1790850555,
+"finished_at": 1790851148,
+"duration": 593,
+"runners": [
+"GitHub Actions 1000003241",
+"GitHub Actions 1000003242",
+"GitHub Actions 1000003243",
+"GitHub Actions 1000003244",
+"GitHub Actions 1000003245",
+"GitHub Actions 1000003248",
+"vps-1",
+"vps-2",
+"vps-3"
+]
+},
+{
+"id": 36850349659,
+"workflow": "CI",
+"title": "Search widgets by tag",
+"url": "https://github.com/acme/widgets/actions/runs/36850349659",
+"conclusion": "cancelled",
+"success": false,
+"pr": null,
+"branch": "agent/857-factory-waiting-on-github-montre-tout",
+"started_at": 1790851083,
+"finished_at": 1790851095,
+"duration": 12,
+"runners": []
+},
+{
+"id": 36849234827,
+"workflow": "CI",
+"title": "Nightly report of slow pages",
+"url": "https://github.com/acme/widgets/actions/runs/36849234827",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "ci/integration-aggregate-on-github",
+"started_at": 1790850441,
+"finished_at": 1790850666,
+"duration": 225,
+"runners": [
+"GitHub Actions 1000003235",
+"GitHub Actions 1000003236",
+"GitHub Actions 1000003237",
+"GitHub Actions 1000003238",
+"GitHub Actions 1000003239",
+"GitHub Actions 1000003240",
+"GitHub Actions 1000003246",
+"GitHub Actions 1000003247",
+"vps-3"
+]
+},
+{
+"id": 36847127998,
+"workflow": "CI",
+"title": "Dark mode for the settings screen",
+"url": "https://github.com/acme/widgets/actions/runs/36847127998",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/857-factory-waiting-on-github-montre-tout",
+"started_at": 1790849247,
+"finished_at": 1790850267,
+"duration": 1020,
+"runners": [
+"GitHub Actions 1000003229",
+"GitHub Actions 1000003230",
+"GitHub Actions 1000003231",
+"GitHub Actions 1000003232",
+"GitHub Actions 1000003233",
+"GitHub Actions 1000003234",
+"vps-1",
+"vps-2",
+"vps-3"
+]
+},
+{
+"id": 36843729817,
+"workflow": "CI",
+"title": "Retry a failed webhook",
+"url": "https://github.com/acme/widgets/actions/runs/36843729817",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "tools/latest-runs-queue",
+"started_at": 1790847336,
+"finished_at": 1790847539,
+"duration": 203,
+"runners": [
+"GitHub Actions 1000003226",
+"GitHub Actions 1000003227",
+"GitHub Actions 1000003228"
+]
+},
+{
+"id": 36839533189,
+"workflow": "CI",
+"title": "Archive old projects",
+"url": "https://github.com/acme/widgets/actions/runs/36839533189",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "tools/active-tab-masks-line",
+"started_at": 1790845011,
+"finished_at": 1790845207,
+"duration": 196,
+"runners": [
+"GitHub Actions 1000003223",
+"GitHub Actions 1000003224",
+"GitHub Actions 1000003225"
+]
+},
+{
+"id": 36837144387,
+"workflow": "CI",
+"title": "Invite a teammate by link (#853)",
+"url": "https://github.com/acme/widgets/actions/runs/36837144387",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/853-alertes-attend-sam-seulement-pour-un",
+"started_at": 1790843662,
+"finished_at": 1790843854,
+"duration": 192,
+"runners": [
+"GitHub Actions 1000003220",
+"GitHub Actions 1000003221",
+"GitHub Actions 1000003222"
+]
+},
+{
+"id": 36832482447,
+"workflow": "CI",
+"title": "Bulk edit of widget colours (#847)",
+"url": "https://github.com/acme/widgets/actions/runs/36832482447",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/847-factory-detail-des-jauges-au-survol",
+"started_at": 1790840907,
+"finished_at": 1790841090,
+"duration": 183,
+"runners": [
+"GitHub Actions 1000003217",
+"GitHub Actions 1000003218",
+"GitHub Actions 1000003219"
+]
+},
+{
+"id": 36801389438,
+"workflow": "CI",
+"title": "CI",
+"url": "https://github.com/acme/widgets/actions/runs/36801389438",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "main",
+"started_at": 1790818204,
+"finished_at": 1790819686,
+"duration": 1482,
+"runners": [
+"GitHub Actions 1000003209",
+"GitHub Actions 1000003210",
+"GitHub Actions 1000003211",
+"GitHub Actions 1000003212",
+"GitHub Actions 1000003213",
+"GitHub Actions 1000003214",
+"GitHub Actions 1000003215",
+"GitHub Actions 1000003216",
+"vps-1",
+"vps-2",
+"vps-3"
+]
+},
+{
+"id": 36772535254,
+"workflow": "CI",
+"title": "Audit log of admin changes",
+"url": "https://github.com/acme/widgets/actions/runs/36772535254",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "tools/dashboard-gauges-one-line",
+"started_at": 1790799934,
+"finished_at": 1790800183,
+"duration": 249,
+"runners": [
+"GitHub Actions 1000003206",
+"GitHub Actions 1000003207",
+"GitHub Actions 1000003208"
+]
+},
+{
+"id": 36772282227,
+"workflow": "CI",
+"title": "Faster dashboard load",
+"url": "https://github.com/acme/widgets/actions/runs/36772282227",
+"conclusion": "cancelled",
+"success": false,
+"pr": null,
+"branch": "tools/dashboard-gauges-one-line",
+"started_at": 1790799806,
+"finished_at": 1790799994,
+"duration": 188,
+"runners": [
+"GitHub Actions 1000003203",
+"GitHub Actions 1000003204",
+"GitHub Actions 1000003205"
+]
+},
+{
+"id": 36763756951,
+"workflow": "CI",
+"title": "Keyboard shortcuts in the editor (#836)",
+"url": "https://github.com/acme/widgets/actions/runs/36763756951",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/836-factory-une-base-sqlite-de-l-historique",
+"started_at": 1790795403,
+"finished_at": 1790796467,
+"duration": 1064,
+"runners": [
+"GitHub Actions 1000003197",
+"GitHub Actions 1000003198",
+"GitHub Actions 1000003199",
+"GitHub Actions 1000003200",
+"GitHub Actions 1000003201",
+"GitHub Actions 1000003202",
+"vps-1",
+"vps-2",
+"vps-3"
+]
+},
+{
+"id": 36761163662,
+"workflow": "Deploy",
+"title": "Deploy",
+"url": "https://github.com/acme/widgets/actions/runs/36761163662",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "main",
+"started_at": 1790794084,
+"finished_at": 1790794180,
+"duration": 96,
+"runners": [
+"vps-1"
+]
+},
+{
+"id": 36760889735,
+"workflow": "Deploy",
+"title": "Deploy",
+"url": "https://github.com/acme/widgets/actions/runs/36760889735",
+"conclusion": "failure",
+"success": false,
+"pr": null,
+"branch": "main",
+"started_at": 1790793944,
+"finished_at": 1790794035,
+"duration": 91,
+"runners": [
+"vps-3"
+]
+},
+{
+"id": 36756974588,
+"workflow": "CI",
+"title": "Weekly digest email (#835)",
+"url": "https://github.com/acme/widgets/actions/runs/36756974588",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/835-test-navigateur-instable-test-the-file",
+"started_at": 1790791980,
+"finished_at": 1790792398,
+"duration": 418,
+"runners": [
+"GitHub Actions 1000003191",
+"GitHub Actions 1000003192",
+"GitHub Actions 1000003193",
+"GitHub Actions 1000003194",
+"GitHub Actions 1000003195",
+"GitHub Actions 1000003196"
+]
+},
+{
+"id": 36755585673,
+"workflow": "CI",
+"title": "Undo a deleted widget",
+"url": "https://github.com/acme/widgets/actions/runs/36755585673",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "tracerworks/decide-dont-ask",
+"started_at": 1790791287,
+"finished_at": 1790791447,
+"duration": 160,
+"runners": [
+"GitHub Actions 1000003188",
+"GitHub Actions 1000003189",
+"GitHub Actions 1000003190"
+]
+},
+{
+"id": 36749491910,
+"workflow": "CI",
+"title": "Pagination of the activity feed",
+"url": "https://github.com/acme/widgets/actions/runs/36749491910",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "tracerworks/claude-statusline-trial",
+"started_at": 1790788224,
+"finished_at": 1790788416,
+"duration": 192,
+"runners": [
+"GitHub Actions 1000003185",
+"GitHub Actions 1000003186",
+"GitHub Actions 1000003187"
+]
+},
+{
+"id": 36746593024,
+"workflow": "CI",
+"title": "Health check of the queue (#826)",
+"url": "https://github.com/acme/widgets/actions/runs/36746593024",
+"conclusion": "failure",
+"success": false,
+"pr": null,
+"branch": "agent/826-tracerworks-message-envoie-tout-de-suite-le",
+"started_at": 1790786758,
+"finished_at": 1790788054,
+"duration": 1296,
+"runners": [
+"GitHub Actions 1000003172",
+"GitHub Actions 1000003173",
+"GitHub Actions 1000003174",
+"GitHub Actions 1000003175",
+"vps-1",
+"vps-2",
+"vps-3"
+]
+},
+{
+"id": 36747959126,
+"workflow": "CI",
+"title": "Import widgets from a spreadsheet",
+"url": "https://github.com/acme/widgets/actions/runs/36747959126",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "ci/all-but-integration-on-github",
+"started_at": 1790787444,
+"finished_at": 1790788042,
+"duration": 598,
+"runners": [
+"GitHub Actions 1000003176",
+"GitHub Actions 1000003177",
+"GitHub Actions 1000003178",
+"GitHub Actions 1000003179",
+"GitHub Actions 1000003180",
+"GitHub Actions 1000003181",
+"GitHub Actions 1000003182",
+"vps-1",
+"vps-3"
+]
+},
+{
+"id": 36747251007,
+"workflow": "CI",
+"title": "Share a read-only view (#830)",
+"url": "https://github.com/acme/widgets/actions/runs/36747251007",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/830-worker-states",
+"started_at": 1790787089,
+"finished_at": 1790787992,
+"duration": 903,
+"runners": [
+"GitHub Actions 1000003183",
+"GitHub Actions 1000003184",
+"vps-1"
+]
+},
+{
+"id": 36743910753,
+"workflow": "CI",
+"title": "Export the catalogue as CSV (#819)",
+"url": "https://github.com/acme/widgets/actions/runs/36743910753",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/819-tableau-de-bord-de-la-factory-fluide-un",
+"started_at": 1790785442,
+"finished_at": 1790786751,
+"duration": 1309,
+"runners": [
+"GitHub Actions 1000003167",
+"GitHub Actions 1000003168",
+"GitHub Actions 1000003169",
+"GitHub Actions 1000003171",
+"vps-1",
+"vps-2",
+"vps-3"
+]
+},
+{
+"id": 36744174136,
+"workflow": "CI",
+"title": "Search widgets by tag",
+"url": "https://github.com/acme/widgets/actions/runs/36744174136",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "docs/prompts-generic-vs-store-context",
+"started_at": 1790785572,
+"finished_at": 1790786596,
+"duration": 1024,
+"runners": [
+"vps-1"
+]
+},
+{
+"id": 36743035418,
+"workflow": "CI",
+"title": "Nightly report of slow pages (#813)",
+"url": "https://github.com/acme/widgets/actions/runs/36743035418",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/813-reglages-et-console-une-seule-mise-en",
+"started_at": 1790785008,
+"finished_at": 1790785925,
+"duration": 917,
+"runners": [
+"GitHub Actions 1000003164",
+"GitHub Actions 1000003165",
+"GitHub Actions 1000003166",
+"GitHub Actions 1000003170",
+"vps-2",
+"vps-3"
+]
+},
+{
+"id": 36742926163,
+"workflow": "CI",
+"title": "Dark mode for the settings screen (#819)",
+"url": "https://github.com/acme/widgets/actions/runs/36742926163",
+"conclusion": "cancelled",
+"success": false,
+"pr": null,
+"branch": "agent/819-tableau-de-bord-de-la-factory-fluide-un",
+"started_at": 1790784954,
+"finished_at": 1790785526,
+"duration": 572,
+"runners": [
+"GitHub Actions 1000003160",
+"GitHub Actions 1000003161",
+"GitHub Actions 1000003162",
+"GitHub Actions 1000003163",
+"vps-1",
+"vps-2",
+"vps-3"
+]
+},
+{
+"id": 36741882922,
+"workflow": "CI",
+"title": "Retry a failed webhook (#813)",
+"url": "https://github.com/acme/widgets/actions/runs/36741882922",
+"conclusion": "failure",
+"success": false,
+"pr": null,
+"branch": "agent/813-reglages-et-console-une-seule-mise-en",
+"started_at": 1790784442,
+"finished_at": 1790784891,
+"duration": 449,
+"runners": [
+"GitHub Actions 1000003156",
+"GitHub Actions 1000003157",
+"GitHub Actions 1000003158",
+"GitHub Actions 1000003159",
+"vps-3"
+]
+},
+{
+"id": 36734530464,
+"workflow": "CI",
+"title": "Archive old projects (#806)",
+"url": "https://github.com/acme/widgets/actions/runs/36734530464",
+"conclusion": "success",
+"success": true,
+"pr": null,
+"branch": "agent/806-tableau-de-bord-de-la-factory-tracerworks",
+"started_at": 1790780949,
+"finished_at": 1790782170,
+"duration": 1221,
+"runners": [
+"GitHub Actions 1000003152",
+"GitHub Actions 1000003153",
+"GitHub Actions 1000003154",
+"GitHub Actions 1000003155",
+"vps-1",
+"vps-2",
+"vps-3"
+]
+}
+]
+},
+"delivered": [
+{
+"kind": "pr",
+"number": 863,
+"title": "Factory — Invite a teammate by link (#862)",
+"url": "https://github.com/acme/widgets/pull/863",
+"at": 1790855901
+},
+{
+"kind": "pr",
+"number": 858,
+"title": "Bulk edit of widget colours",
+"url": "https://github.com/acme/widgets/pull/858",
+"at": 1790852551
+},
+{
+"kind": "pr",
+"number": 861,
+"title": "Rate limit on the public API",
+"url": "https://github.com/acme/widgets/pull/861",
+"at": 1790850682
+},
+{
+"kind": "pr",
+"number": 856,
+"title": "Audit log of admin changes",
+"url": "https://github.com/acme/widgets/pull/856",
+"at": 1790847576
+},
+{
+"kind": "pr",
+"number": 855,
+"title": "Faster dashboard load",
+"url": "https://github.com/acme/widgets/pull/855",
+"at": 1790845229
+}
+],
+"events": [
+{
+"kind": "spec_created",
+"number": 865,
+"title": "Factory — Keyboard shortcuts in the editor",
+"url": "https://github.com/acme/widgets/issues/865",
+"at": 1790856856
+},
+{
+"kind": "spec_created",
+"number": 864,
+"title": "Factory — Translate the onboarding",
+"url": "https://github.com/acme/widgets/issues/864",
+"at": 1790856292
+},
+{
+"kind": "merged",
+"number": 863,
+"title": "Factory — Two-step sign-in (#862)",
+"url": "https://github.com/acme/widgets/pull/863",
+"at": 1790855901
+},
+{
+"kind": "merged",
+"number": 858,
+"title": "Weekly digest email",
+"url": "https://github.com/acme/widgets/pull/858",
+"at": 1790852551
+},
+{
+"kind": "ticket_closed",
+"number": 860,
+"title": "Factory — Undo a deleted widget",
+"url": "https://github.com/acme/widgets/issues/860",
+"at": 1790851512
+}
+],
+"events_unknown": []
+}

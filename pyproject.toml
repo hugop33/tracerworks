@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tracerworks"
+version = "0.1.0"
+description = "A factory of coding agents: specs and tickets in, merged pull requests out."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+# The tool itself is the standard library only.
+dependencies = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development",
+]
+
+[project.urls]
+Repository = "https://github.com/hugop33/tracerworks"
+
+[project.optional-dependencies]
+# What the suite needs; `dev` adds what the CI lints and types with.
+test = ["pytest>=8.3"]
+dev = ["pytest>=8.3", "ruff==0.16.3", "mypy==2.3.0"]
+
+[project.scripts]
+tracerworks = "tracerworks.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tracerworks", "src/session_guard"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+tmp_path_retention_policy = "failed"
+tmp_path_retention_count = 1
+
+[tool.ruff]
+src = ["src", "tests"]
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "C4", "SIM", "PTH", "RUF"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+mypy_path = "src"
+explicit_package_bases = true
+warn_unreachable = true

@@ -1,0 +1,4 @@
+{"event": "PostToolUse", "kind": null, "text": null, "session": "s-1771", "at": 1792884700.0}
+{"event": "Stop", "kind": null, "text": "Il reste 1250 Mo disponibles, sous le seuil de 1,5 Go : j'attends la mémoire avant les tests d'intégration.\n\nTRACERWORKS-WAITS-FOR-MEMORY", "session": "s-1771", "at": 1792884840.0}
+{"event": "Notification", "kind": "idle_prompt", "text": "Claude is waiting for your input", "session": "s-1771", "at": 1792884900.0}
+{"event": "SessionStart", "kind": "compact", "text": null, "session": "s-1771", "at": 1792888140.0}

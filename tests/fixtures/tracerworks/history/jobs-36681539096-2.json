@@ -1,0 +1,175 @@
+{
+ "total_count": 10,
+ "jobs": [
+  {
+   "id": 109786107615,
+   "run_id": 36681539096,
+   "run_attempt": 2,
+   "name": "browser tranche 1/1",
+   "status": "completed",
+   "conclusion": "success",
+   "created_at": "2026-09-30T07:31:26Z",
+   "started_at": "2026-09-30T07:33:34Z",
+   "completed_at": "2026-09-30T07:42:55Z",
+   "runner_name": "vps-3",
+   "labels": [
+    "self-hosted",
+    "vps"
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/36681539096/job/109786107615"
+  },
+  {
+   "id": 109786107796,
+   "run_id": 36681539096,
+   "run_attempt": 2,
+   "name": "changes (which jobs this change needs)",
+   "status": "completed",
+   "conclusion": "success",
+   "created_at": "2026-09-30T07:31:26Z",
+   "started_at": "2026-09-30T07:03:22Z",
+   "completed_at": "2026-09-30T07:03:40Z",
+   "runner_name": "vps-2",
+   "labels": [
+    "self-hosted",
+    "vps"
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/36681539096/job/109786107796"
+  },
+  {
+   "id": 109786108656,
+   "run_id": 36681539096,
+   "run_attempt": 2,
+   "name": "integration tranche 1/1",
+   "status": "completed",
+   "conclusion": "success",
+   "created_at": "2026-09-30T07:31:27Z",
+   "started_at": "2026-09-30T07:07:24Z",
+   "completed_at": "2026-09-30T07:09:56Z",
+   "runner_name": "vps-3",
+   "labels": [
+    "self-hosted",
+    "vps"
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/36681539096/job/109786108656"
+  },
+  {
+   "id": 109786108848,
+   "run_id": 36681539096,
+   "run_attempt": 2,
+   "name": "compose (images + dev stack)",
+   "status": "completed",
+   "conclusion": "skipped",
+   "created_at": "2026-09-30T07:31:27Z",
+   "started_at": "2026-09-30T07:31:27Z",
+   "completed_at": "2026-09-30T07:03:41Z",
+   "runner_name": null,
+   "labels": [
+    "self-hosted",
+    "vps"
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/36681539096/job/109786108848"
+  },
+  {
+   "id": 109786108865,
+   "run_id": 36681539096,
+   "run_attempt": 2,
+   "name": "migrations (replay, domain schema, RLS net)",
+   "status": "completed",
+   "conclusion": "success",
+   "created_at": "2026-09-30T07:31:27Z",
+   "started_at": "2026-09-30T07:03:42Z",
+   "completed_at": "2026-09-30T07:06:43Z",
+   "runner_name": "vps-1",
+   "labels": [
+    "self-hosted",
+    "vps"
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/36681539096/job/109786108865"
+  },
+  {
+   "id": 109786108877,
+   "run_id": 36681539096,
+   "run_attempt": 2,
+   "name": "checks (lint, types, api client, auth, front)",
+   "status": "completed",
+   "conclusion": "success",
+   "created_at": "2026-09-30T07:31:27Z",
+   "started_at": "2026-09-30T07:06:44Z",
+   "completed_at": "2026-09-30T07:09:30Z",
+   "runner_name": "vps-1",
+   "labels": [
+    "self-hosted",
+    "vps"
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/36681539096/job/109786108877"
+  },
+  {
+   "id": 109786108928,
+   "run_id": 36681539096,
+   "run_attempt": 2,
+   "name": "tests (pytest)",
+   "status": "completed",
+   "conclusion": "success",
+   "created_at": "2026-09-30T07:31:27Z",
+   "started_at": "2026-09-30T07:04:31Z",
+   "completed_at": "2026-09-30T07:07:22Z",
+   "runner_name": "vps-3",
+   "labels": [
+    "self-hosted",
+    "vps"
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/36681539096/job/109786108928"
+  },
+  {
+   "id": 109786110624,
+   "run_id": 36681539096,
+   "run_attempt": 2,
+   "name": "integration (HTTP end-to-end, real infra)",
+   "status": "completed",
+   "conclusion": "success",
+   "created_at": "2026-09-30T07:31:27Z",
+   "started_at": "2026-09-30T07:29:19Z",
+   "completed_at": "2026-09-30T07:30:04Z",
+   "runner_name": "vps-3",
+   "labels": [
+    "self-hosted",
+    "vps"
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/36681539096/job/109786110624"
+  },
+  {
+   "id": 109789644670,
+   "run_id": 36681539096,
+   "run_attempt": 2,
+   "name": "browser (real Chromium journeys)",
+   "status": "completed",
+   "conclusion": "success",
+   "created_at": "2026-09-30T07:42:55Z",
+   "started_at": "2026-09-30T08:01:39Z",
+   "completed_at": "2026-09-30T08:02:43Z",
+   "runner_name": "vps-1",
+   "labels": [
+    "self-hosted",
+    "vps"
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/36681539096/job/109789644670"
+  },
+  {
+   "id": 109795905669,
+   "run_id": 36681539096,
+   "run_attempt": 2,
+   "name": "daily alarm (one issue while the whole suite is red)",
+   "status": "completed",
+   "conclusion": "skipped",
+   "created_at": "2026-09-30T08:02:44Z",
+   "started_at": "2026-09-30T08:02:44Z",
+   "completed_at": "2026-09-30T08:02:44Z",
+   "runner_name": null,
+   "labels": [
+    "self-hosted",
+    "vps"
+   ],
+   "html_url": "https://github.com/acme/widgets/actions/runs/36681539096/job/109795905669"
+  }
+ ]
+}

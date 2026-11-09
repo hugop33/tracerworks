@@ -1,0 +1,10 @@
+2026-09-23 18:00:25 mem_dispo=4804MB disque=80% tmp=14% volumes_liberes=149.5MB top: claude:517MB MainThread:466MB claude.exe:270MB 
+2026-09-23 18:30:01 mem_dispo=4380MB disque=80% tmp=15% volumes_liberes=0B top: 
+2026-09-23 19:00:01 mem_dispo=3508MB disque=80% tmp=15% volumes_liberes=0B top: 
+2026-09-30 13:00:01 mem_dispo=5262MB disque=75% tmp=14% volumes_liberes=0B runner=active work=872MB top: 
+2026-09-30 13:15:01 mem_dispo=5824MB disque=74% tmp=14% volumes_liberes=125.1MB runner=active work=872MB top: 
+2026-09-30 13:30:01 mem_dispo=5900MB disque=75% tmp=14% volumes_liberes=125MB runner=active work=905MB top: 
+2026-09-30 13:45:01 mem_dispo=5784MB disque=74% tmp=14% volumes_liberes=0B runner=active work=856MB top: 
+2026-08-31 23:00:00 mem_dispo=1MB disque=1% top: 
+2026-09-30 14:00:01 top: 
+not a line

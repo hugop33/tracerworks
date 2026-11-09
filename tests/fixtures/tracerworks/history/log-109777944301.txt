@@ -1,0 +1,7 @@
+﻿2026-09-30T07:03:44.3024852Z Current runner version: '2.337.0'
+2026-09-30T07:03:44.3040444Z Runner name: 'vps-2'
+2026-09-30T07:03:44.3041960Z Runner group name: 'Default'
+2026-09-30T07:12:14.1866743Z tests/integration/test_browser_settings.py::test_an_agent_sees_no_doomed_button_on_a_waiting_ticket_under_the_rule FAILED [ 60%]
+2026-09-30T07:12:59.9656094Z FAILED tests/integration/test_browser_settings.py::test_an_agent_sees_no_doomed_button_on_a_waiting_ticket_under_the_rule - sqlalchemy.exc.IntegrityError: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.ForeignKeyViolationError'>: update or delete on table "categories" violates foreign key constraint "fk_ticket_active_time_category" on table "ticket_active_time"
+2026-09-30T07:12:59.9668950Z ======== 1 failed, 29 passed, 8 skipped, 1 warning in 433.00s (0:07:13) ========
+2026-09-30T07:13:00.8345167Z ##[error]Process completed with exit code 1.

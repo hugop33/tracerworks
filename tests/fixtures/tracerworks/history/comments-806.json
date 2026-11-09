@@ -1,0 +1,10 @@
+[
+ {
+  "created_at": "2026-09-30T15:33:31Z",
+  "body": "<!-- tracerworks:usage -->\n**Consommation du chantier #806** — mesurée par `tracerworks clean` à la suppression du worktree, dans les journaux de Claude Code.\n\n| | total | entrée | cache écrit | cache lu | sortie | réponses |\n|---|---:|---:|---:|---:|---:|---:|\n| owner | 38 859 959 | 336 | 355 595 | 38 324 355 | 179 673 | 166 |\n| délégué « Standards review of chantier 806 » | 258 168 | 12 | 60 023 | 198 074 | 59 | 6 |\n| délégué « Spec review of chantier 806 » | 925 592 | 28 | 90 914 | 834 529 | 121 | 14 |\n| délégués (total) | 1 183 760 | 40 | 150 937 | 1 032 603 | 180 | 20 |\n| **chantier** | 40 043 719 | 376 | 506 532 | 39 356 958 | 179 853 | 186 |\n\nDurée : 1 h 51 (première → dernière activité).\n\nWorktree : 404 Mo (supprimé).\n"
+ },
+ {
+  "created_at": "2026-09-30T15:33:33Z",
+  "body": "Livré par #816 (fusionnée) — fermé par `tracerworks clean`."
+ }
+]

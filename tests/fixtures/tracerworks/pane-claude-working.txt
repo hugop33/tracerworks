@@ -1,0 +1,9 @@
+⏺ Bash(uv run pytest tests/test_widgets.py -q)
+  ⎿  Running…
+
+✻ Beboppin'… (1m 43s · ↓ 7.1k tokens · thought for 1s)
+
+────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · esc to interrupt · ↓ 1 agent

@@ -1,0 +1,18 @@
+● Le lien symbolique vers le node_modules partagé n'est plus utile : je le
+  retire avant le commit.
+
+● Bash(rm node_modules)
+  ⎿  Running…
+
+────────────────────────────────────────────────────────────────────────────────
+ Bash command
+
+   rm node_modules
+   Remove the shared node_modules symlink
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for rm commands in /home/dev/.agent-worktrees/976
+   3. No, and tell Claude what to do differently (esc)
+
+ Esc to cancel · Tab to amend · ctrl+e to explain

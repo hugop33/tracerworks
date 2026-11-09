@@ -1,0 +1,16 @@
+{
+  "read_only_dirs": [
+    "legacy-repo"
+  ],
+  "read_only_shops": [
+    "prod-shop.example.com"
+  ],
+  "forbidden_tool_prefixes": [
+    "mcp__claude_ai_"
+  ],
+  "protected_paths": [
+    ".claude/settings.json",
+    ".claude/session_guard.json",
+    "tools/session_guard"
+  ]
+}

@@ -1,0 +1,14 @@
+● L'invite bloquante ressemblait à ceci :
+
+  Do you want to proceed?
+  ❯ 1. Yes
+    2. No, and tell Claude what to do differently (esc)
+
+  tracerworks la reconnaît désormais.
+
+✻ Brewed for 12s · done 10:58 AM
+
+────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle)

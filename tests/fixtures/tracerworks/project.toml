@@ -1,0 +1,112 @@
+# A project file for tracerworks's tests: the recorded world of `fakes.py`.
+[github]
+repo = "owner/repo"
+ready_label = "ready-for-agent"
+launch_label = "to-launch"
+priority_label = "priority"
+star_label = "starred"
+progress_label = "in-progress"
+human_label = "needs-human"
+parent_keywords = ["Parent"]
+blocker_keywords = ["Dépend de", "Depends on", "Blocked by"]
+runner = "vps-1"
+deploy_workflow = "deploy.yml"
+operator_login = "operator-login"
+worker_logins = []
+
+[natures]
+spec = "spec"
+ticket = "ticket"
+bug = "bug"
+task = "task"
+idea = "idea"
+
+[git]
+repo_dir = "/home/dev/dev/widgets"
+remote = "origin"
+base_branch = "main"
+
+[workers]
+tmux_session = "widgets"
+window_prefix = "worker-"
+test_commands = ["node --test", "pytest"]
+worktree_root = "/home/dev/.agent-worktrees"
+branch_prefix = "agent/"
+operator = "Sam"
+shared_dirs = ["front/node_modules"]
+scratch_dir = ".tmp"
+disallowed_tools = ["mcp__database", "Read(~/corpus/**)"]
+github_token_file = "/nonexistent/worker-github.token"
+guard_probe_tool = "mcp__forbidden_probe"
+model = "big"
+effort = "high"
+models = ["big", "small"]
+model_label_prefix = "llm-"
+effort_label_prefix = "thinking-"
+stripped_env = ["GUARD_ESCAPE"]
+primer_rules = [
+    "TDD, preuves locales",
+    "un commit par ticket, poussé (git push -u origin {branch})",
+    "un mot-clé Closes par ticket",
+    "vrai arbitrage → needs-human",
+]
+
+[install]
+source_dir = "tools/tracerworks"
+config_in_repo = "tracerworks.toml"
+
+[paths]
+state_file = "/nonexistent/state.yaml"
+cache_dir = "/nonexistent/cache"
+install_dir = "/nonexistent/install"
+bin_dir = "/nonexistent/bin"
+relauncher_log = "/nonexistent/next.log"
+relauncher_timer = "tracerworks-next-fixture.timer"
+
+[serve]
+host = "127.0.0.1"
+port = 8787
+secret_file = "/nonexistent/dashboard.secret"
+service = "tracerworks-serve-fixture"
+
+[quotas]
+claude_file = "/nonexistent/claude-quota.json"
+claude_statusline = false
+billing_token_file = "/nonexistent/github-billing.token"
+actions_included_minutes = 2000
+budget_variable = "CI_GITHUB_BUDGET_LOW"
+
+[history]
+db = "/nonexistent/history.sqlite3"
+since = "2026-09-01"
+health_log = "/nonexistent/vps-health.log"
+# The CI workflow: its runs on a branch are that pull request\'s CI (Qualité tab).
+ci_workflow = "ci.yml"
+backup_dir = "/nonexistent/backups"
+
+
+# The merge queue (#1714, spec #1708): a pull request carrying `label` enters
+# it once its light lane is green; tracerworks tests one at a time, on the base
+# branch of the moment, under `testing_label`, then posts `status_context` and
+# merges.
+[merge_queue]
+testing_label = "merge-queue-testing"
+status_context = "merge-queue"
+# The CI's `checks` job: skipped, `changes` ran nothing (documentation only).
+nothing_check = "checks ("
+# The night's suite is a dispatch of the CI workflow on the base branch.
+night_event = "workflow_dispatch"
+# The one exception to the queue (#1801): a production emergency.
+off_label = "hors-file"
+
+[waits]
+human_minutes = 30
+parked_red_minutes = 120
+memory_resume_mb = 1536
+permission_ask_minutes = 20
+permission_ask = ["dis[- ]moi de"]
+decision = ["needs-human"]
+
+[alerts]
+telegram_chat_id = "42"
+telegram_token_file = "/nonexistent/telegram.token"

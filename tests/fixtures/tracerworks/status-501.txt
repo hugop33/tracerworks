@@ -1,0 +1,4 @@
+# branch.oid 1111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+# branch.head agent/501-console-operateur
+# branch.upstream origin/agent/501-console-operateur
+# branch.ab +0 -0

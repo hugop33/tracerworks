@@ -1,0 +1,216 @@
+# An example project file for tracerworks. Every value specific to a project
+# lives in this file, none in the tool: copy it, then change what is yours.
+#
+#   tracerworks --config tracerworks.toml status
+#
+# Without --config: $TRACERWORKS_CONFIG, else ~/.config/tracerworks/project.toml.
+# A `~` in a path is your home folder.
+
+[github]
+# The repository the workers build: issues, pull requests, CI.
+repo = "your-name/your-app"
+# A spec is launched by `start-next` only when it carries both of these;
+# priority_label goes first in the queue.
+ready_label = "ready-for-agent"
+launch_label = "to-launch"
+priority_label = "priority"
+# Your mark on what matters to you now: first in its group on the dashboard,
+# never an order of the queue.
+star_label = "starred"
+# Put on a ticket by its worker when it starts it, removed when it closes it;
+# human_label goes on a spec whose worker waits for you.
+progress_label = "in-progress"
+human_label = "needs-human"
+# How a ticket names its spec (`Parent: #12`, or a `## Parent` section) and
+# its blockers (`Blocked by: #13, #14`).
+parent_keywords = ["Parent"]
+blocker_keywords = ["Blocked by", "Depends on"]
+# Your self-hosted CI runners, comma-separated: one busy raises the memory
+# floor a launch needs. A runner not registered is ignored.
+runner = "my-runner-1"
+# The workflow whose successful runs are your deployments (dashboard).
+deploy_workflow = "deploy.yml"
+# Labels of a spec its pull request carries too (e.g. a CI mode). Optional.
+# carried_labels = ["ci-fast"]
+# Who is trusted: issues, launches and comments by these logins are
+# instructions to a worker; anyone else's are data, quoted, never obeyed.
+operator_login = "your-name"
+worker_logins = []
+
+# The nature of an issue: the dashboard groups what waits on GitHub by it.
+[natures]
+spec = "spec"
+ticket = "ticket"
+bug = "bug"
+task = "task"
+idea = "idea"
+
+[git]
+# Your main clone; each worker gets a worktree of it.
+repo_dir = "~/code/your-app"
+remote = "origin"
+base_branch = "main"
+
+[workers]
+# The tmux session the workers' windows live in, one window per worker.
+tmux_session = "your-app"
+window_prefix = "worker-"
+worktree_root = "~/.agent-worktrees"
+branch_prefix = "agent/"
+# Your name as the dashboard shows it.
+operator = "you"
+# At most this many specs in flight, from development to the merge queue.
+in_flight = 3
+# Each worker in its own `systemd --user` scope, in this slice: stopping it
+# stops everything it started. Leave out where there is no systemd.
+systemd_slice = "agents.slice"
+# Each worker's memory cap, in GB, swap included.
+memory_max = 3
+# A worker's test running longer than test_max_minutes is stopped, its worker
+# told: a program, then the words right after it.
+test_commands = ["pytest", "node --test", "vitest", "playwright"]
+test_max_minutes = 30
+# A worker's TMPDIR, inside its worktree (make git ignore it).
+scratch_dir = ".tmp"
+# The repository's hooks folder, set as each worktree's core.hooksPath (a
+# pre-push hook running your quick checks). Optional.
+# hooks_dir = ".githooks"
+# What each worktree installs for itself, when its lock file changes. Optional.
+# installs = [
+#     { path = "web/node_modules", lock = "web/package-lock.json", run = "npm ci" },
+# ]
+# The workers' fine-grained GitHub token, mode 600: this repository only;
+# write on Contents, Pull requests, Issues and Workflows, read on Actions,
+# Commit statuses and Checks. Absent: the machine's own `gh` login is used.
+github_token_file = "~/.config/tracerworks/worker-github.token"
+# Before a launch or a resume, the worktree's session guard is tried on a
+# harmless call, which must pass, and on this tool, which its rulebook must
+# refuse (see examples/session_guard.json).
+guard_probe_tool = "mcp__claude_ai_tracerworks_probe"
+# Taken out of every worker's environment: the guard's operator escape.
+stripped_env = ["SESSION_GUARD_REPAIR"]
+# The model and effort each worker starts with; a spec may choose others
+# with one label per dimension (`model-sonnet`, `effort-xhigh`).
+model = "opus"
+effort = "high"
+models = ["opus", "sonnet"]
+model_label_prefix = "model-"
+effort_label_prefix = "effort-"
+# Claude Code permission rules every worker is denied, at launch and resume:
+# a deny rule holds in auto mode. Name your production, your secrets and
+# whatever must not be a worker's input.
+disallowed_tools = [
+    "Read(~/.config/gh/**)",
+    "Read(~/.config/tracerworks/**)",
+    "Bash(gh secret*)",
+    "Bash(gh variable*)",
+    "Bash(gh auth*)",
+    "Bash(gh workflow run*)",
+    "Bash(gh run rerun*)",
+    "Bash(tracerworks*)",
+]
+# Your rules, added to every worker's primer. `{branch}` is its branch,
+# `{memory_marker}` the line a worker ends its turn with to wait for memory.
+primer_rules = [
+    "work on the first unblocked ticket of the spec, then the next one",
+    "test first; locally, run the fast proofs only, the CI runs the rest",
+    "put the in-progress label on a ticket when you start it, remove it when you close it",
+    "one commit per ticket, pushed (git push -u origin {branch}); close the ticket with its proof",
+    "before a heavy test, check the free memory: under 1.5 GB, end your turn with a line containing {memory_marker}",
+    "no pull request before the spec's last ticket; then open it ready, one Closes keyword per ticket, never auto-merge",
+    "decide what can be undone yourself and say it in the pull request; ask (needs-human) only for what cannot: money, real data, production, secrets, security",
+]
+
+# `tracerworks self-update` installs the tool from your repository's base
+# branch when you keep it in the repository (source_dir), with its project
+# file (config_in_repo). Installed with uv or pipx, you do not need it.
+[install]
+source_dir = "tools/tracerworks"
+config_in_repo = "tracerworks.toml"
+
+[paths]
+state_file = "~/.config/tracerworks/state.yaml"
+cache_dir = "~/.cache/tracerworks"
+install_dir = "~/.local/share/tracerworks"
+bin_dir = "~/.local/bin"
+# The relauncher's journal and timer (examples/systemd): the dashboard reads
+# what it launched, and when it runs next.
+relauncher_log = "~/tracerworks-next.log"
+relauncher_timer = "tracerworks-next.timer"
+
+# The dashboard (`tracerworks serve`): read only, behind HTTP Basic, the
+# password in secret_file (mode 600). Listen on localhost and put your own
+# HTTPS proxy in front; never on a public interface.
+[serve]
+host = "127.0.0.1"
+port = 8787
+secret_file = "~/.config/tracerworks/dashboard.secret"
+service = "tracerworks-serve"
+
+# The quotas the dashboard shows, read, never declared.
+[quotas]
+# Claude Code hands its status line the account's usage; `tracerworks
+# statusline` records it here when claude_statusline launches the workers
+# with it.
+claude_file = "~/.cache/tracerworks/claude-quota.json"
+claude_statusline = false
+# GitHub Actions' usage of the month, with a read-only token ("Plan: read").
+billing_token_file = "~/.config/tracerworks/github-billing.token"
+actions_included_minutes = 2000
+
+# The factory's history: one SQLite base, fed by `serve`, read by the
+# dashboard's Measures tab and by `tracerworks db`.
+[history]
+db = "~/.local/share/tracerworks/db/factory.sqlite3"
+# A journal of the machine's health, one line every few minutes (memory,
+# load, disk): the dashboard reads it if it exists.
+health_log = "~/machine-health.log"
+ci_workflow = "ci.yml"
+backup_dir = "~/.local/share/tracerworks/db/backups"
+
+# The merge queue: a ready pull request of a trusted author, its light CI
+# green, is tested once more on the base branch of the moment, under
+# testing_label, then merged by tracerworks. Never by hand, never auto-merge.
+[merge_queue]
+testing_label = "merge-queue-testing"
+status_context = "merge-queue"
+# Your CI's check that runs nothing for a documentation-only change.
+nothing_check = "checks ("
+# How your nightly full suite is started (a dispatch of the CI workflow).
+night_event = "workflow_dispatch"
+# The one way around the queue, for a production emergency.
+off_label = "skip-queue"
+# A test that failed then passed is rerun once, up to this many.
+flaky_max_tests = 3
+
+[waits]
+# A worker waiting for you this long: human_label on its spec, with why.
+human_minutes = 30
+# A spec parked with a red or conflicting pull request this long: alert.
+parked_red_minutes = 120
+# A worker that waits for memory is told to go on once this much is free.
+memory_resume_mb = 2048
+# A worker at rest on a question it need not ask ("shall I push again?") is
+# nudged after this long; what such a question says, and what names a
+# decision that is yours (never nudged). Regular expressions, any case.
+permission_ask_minutes = 20
+permission_ask = [
+    "\\b(?:shall|should|may|can) i (?:re-?run|retry|re-?push|push|continue|proceed|go on)\\b",
+    "\\blet me know (?:if|when|whether)\\b",
+    "\\b(?:want|like) me to (?:re-?run|retry|re-?push|push|continue|proceed)\\b",
+]
+decision = [
+    "needs-human",
+    "\\b(?:money|payment|invoice|purchase|subscription)\\b",
+    "\\b(?:real|personal) data\\b",
+    "\\bproduction\\b",
+    "\\bsecrets?\\b",
+    "\\b(?:token|password)\\b",
+    "\\birreversible\\b",
+    "\\bsecurity\\b",
+]
+
+# Alerts on Telegram: a bot's token (mode 600) and your chat's id.
+[alerts]
+telegram_chat_id = "000000000"
+telegram_token_file = "~/.config/tracerworks/telegram.token"

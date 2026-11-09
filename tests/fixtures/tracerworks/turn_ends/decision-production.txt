@@ -1,0 +1,4 @@
+La correction demande de réécrire 240 lignes de la base de
+production. C'est irréversible : j'ai posé needs-human sur #1640 avec les options.
+
+Dis-moi si je peux lancer la réécriture.

@@ -1,0 +1,50 @@
+
+[38;5;246m✻[39m [38;5;246mCrunched for 53s · done 4:34 PM[39m
+
+[38;5;239m[48;5;237m❯ [38;5;231mRelance exactement : python3 -c "import time; time.sleep(40); print(43)" puis donne le résultat.[39m
+[49m
+[38;5;246m [39m Sleeping 40 seconds then printing 43[38;5;246m · 12s[39m
+[38;5;246m  ⎿  $ python3 -c "import time; time.sleep(40); print(43)" (11s)[39m
+     [38;5;246m(ctrl+b ctrl+b (twice) to run in background)[39m
+
+[38;5;239m[48;5;237m❯ [38;5;246mMessage de Sam (30/09 16h45, m-def456) :[39m
+  [38;5;246mligne 1 de la consigne longue[39m
+  [38;5;246mligne 2 de la consigne longue[39m
+  [38;5;246mligne 3 de la consigne longue[39m
+  [38;5;246mligne 4 de la consigne longue[39m
+  [38;5;246mligne 5 de la consigne longue[39m
+  [38;5;246mligne 6 de la consigne longue[39m
+  [38;5;246mligne 7 de la consigne longue[39m
+  [38;5;246mligne 8 de la consigne longue[39m
+  [38;5;246mligne 9 de la consigne longue[39m
+  [38;5;246mligne 10 de la consigne longue[39m
+  [38;5;246mligne 11 de la consigne longue[39m
+  [38;5;246mligne 12 de la consigne longue[39m
+  [38;5;246mligne 13 de la consigne longue[39m
+  [38;5;246mligne 14 de la consigne longue[39m
+  [38;5;246mligne 15 de la consigne longue[39m
+  [38;5;246mligne 16 de la consigne longue[39m
+  [38;5;246mligne 17 de la consigne longue[39m
+  [38;5;246mligne 18 de la consigne longue[39m
+  [38;5;246mligne 19 de la consigne longue[39m
+  [38;5;246mligne 20 de la consigne longue[39m
+  [38;5;246mligne 21 de la consigne longue[39m
+  [38;5;246mligne 22 de la consigne longue[39m
+  [38;5;246mligne 23 de la consigne longue[39m
+  [38;5;246mligne 24 de la consigne longue[39m
+  [38;5;246mligne 25 de la consigne longue[39m
+  [38;5;246mligne 26 de la consigne longue[39m
+  [38;5;246mligne 27 de la consigne longue[39m
+  [38;5;246mligne 28 de la consigne longue[39m
+  [38;5;246mligne 29 de la consigne longue[39m
+  [38;5;246mligne 30 de la consigne longue[39m
+  [38;5;246mà la fin écris LONGPONG[39m
+[49m  [38;5;246mctrl+x ctrl+s to send now[39m
+
+[38;5;174m✻[39m [38;5;174mHyperspacing… [38;5;246m(15s · ↓[39m [38;5;246m126 tokens)[39m
+[38;5;246m  ⎿  Tip: Use git worktrees to run multiple Claude sessions in parallel.[39m
+
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[38;5;246m❯ [2m[39mPress up to edit queued messages[0m
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  [38;5;246mpaste again to expand[39m

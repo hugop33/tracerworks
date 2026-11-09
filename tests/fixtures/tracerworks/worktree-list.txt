@@ -1,0 +1,19 @@
+worktree /home/dev/dev/widgets
+HEAD 9e92789aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+branch refs/heads/main
+
+worktree /home/dev/dev/widgets/.claude/worktrees/agent-a5d63a4e3292d7f25
+HEAD 3fb5f43aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+branch refs/heads/wip-v6-categories-two-levels
+
+worktree /home/dev/.agent-worktrees/501
+HEAD 1111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+branch refs/heads/agent/501-console-operateur
+
+worktree /home/dev/.agent-worktrees/510
+HEAD 2222222aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+branch refs/heads/agent/510-classification
+
+worktree /home/dev/.agent-worktrees/520
+HEAD 3333333aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+branch refs/heads/agent/520-dashboard

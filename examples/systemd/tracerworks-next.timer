@@ -1,0 +1,12 @@
+# Every minute, the relauncher's pass:
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now tracerworks-next.timer
+[Unit]
+Description=tracerworks: the relauncher, every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+
+[Install]
+WantedBy=timers.target

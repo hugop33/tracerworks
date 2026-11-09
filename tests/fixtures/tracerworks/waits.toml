@@ -1,0 +1,31 @@
+# The patterns a worker's turn is read with (`[waits]`, #1789): what asks
+# leave it need not ask, what names a decision of the operator's. The
+# suite proves the nudges with these; a project file carries its own.
+[waits]
+permission_ask = [
+    "dis[- ]moi (?:de|si|quand|s'il)",
+    "(?:veux|voulez|souhaites|souhaitez)[- ](?:tu|vous) que je",
+    "\\b(?:puis|dois)[- ]je\\b",
+    "\\bje (?:re)?(?:lance|pousse|pousse à nouveau|repousse|continue|reprends)\\s*\\?",
+    "\\bon (?:re)?(?:lance|pousse|repousse|continue)\\s*\\?",
+    "\\bfeu vert\\b",
+    "\\bou (?:tu|vous) pr[ée]f[èée]re",
+    "\\b(?:j'attends|en attente de) (?:ton|votre) (?:accord|go|feu vert|retour|signal)",
+    "\\b(?:shall|should|may|can) i (?:re-?run|retry|re-?push|push|continue|proceed|go on)\\b",
+    "\\blet me know (?:if|when|whether)\\b",
+    "\\b(?:want|like) me to (?:re-?run|retry|re-?push|push|continue|proceed)\\b",
+]
+decision = [
+    "needs-human",
+    "\\b(?:argent|payant|paiement|factur|achat|abonnement)",
+    "donn[ée]es (?:r[ée]elles|personnelles)",
+    "\\bV1\\b",
+    "\\bprod(?:uction)?\\b",
+    "boutique",
+    "\\bsecrets?\\b",
+    "\\b(?:jeton|token|mot de passe|password)\\b",
+    "irr[ée]versible",
+    "\\bs[ée]curit[ée]\\b",
+    "\\bDNS\\b",
+    "\\bOAuth\\b",
+]

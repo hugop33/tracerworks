@@ -1,0 +1,2 @@
+Ticket #1702 fermé avec sa preuve (commit `9ab31c0`, poussé). Je passe au ticket
+suivant du chantier, #1703 : lecture de la spec et de ses commentaires.

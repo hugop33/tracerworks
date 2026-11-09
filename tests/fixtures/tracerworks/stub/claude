@@ -1,0 +1,20 @@
+#!/bin/bash
+# A stand-in for the Claude Code interface, for tracerworks's real-tmux tests:
+# it has a thread, an input line starting with the prompt glyph, a status line,
+# and it quits on /exit. It is NOT an agent: it only echoes what it receives
+# into its thread (and into $STUB_LOG, for the test to read the exact bytes).
+stty -echo 2>/dev/null
+thread=("stub ready")
+draw() {
+  clear
+  printf '%s\n' "${thread[@]}"
+  printf '\n%s\n\xe2\x9d\xaf\xc2\xa0\n%s\n  auto mode on\n' "------------" "------------"
+}
+draw
+while IFS= read -r line; do
+  line=${line//$'\e'/}  # Escape interrupts the real interface; here it is dropped
+  [ "$line" = "/exit" ] && exit 0
+  printf '%s\n' "$line" >> "${STUB_LOG:-/dev/null}"
+  thread+=("> $line")
+  draw
+done

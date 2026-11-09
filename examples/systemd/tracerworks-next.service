@@ -1,0 +1,14 @@
+# The relauncher's pass: free the places of finished workers, then launch or
+# resume at most one spec. Exit code 1 is a refusal ("no free session",
+# "queue empty"), a normal answer.
+#   ~/.config/systemd/user/tracerworks-next.service
+[Unit]
+Description=tracerworks: clean, then start the next spec
+
+[Service]
+Type=oneshot
+Environment=TRACERWORKS_CONFIG=%h/.config/tracerworks/project.toml
+ExecStart=/bin/sh -c '%h/.local/bin/tracerworks clean; exec %h/.local/bin/tracerworks start-next'
+StandardOutput=append:%h/tracerworks-next.log
+StandardError=append:%h/tracerworks-next.log
+SuccessExitStatus=1
