@@ -1,27 +1,36 @@
 # tracerworks
 
-> **Credits.** The way of working this factory drives — a spec, then
-> tracer-bullet tickets, then test-driven implementation and review — comes
-> from **Matt Pocock's skills: <https://github.com/mattpocock/skills>**. The
-> factory runs agents that use them; it does not ship them. Go there first.
+**A self-hosted software factory that runs Claude Code with
+[Matt Pocock's skills](https://github.com/mattpocock/skills).** You write a
+spec as a GitHub issue; Claude Code workers build it test-first, in parallel,
+and a merge queue merges their pull requests. No session to watch, no laptop
+left on.
 
-**tracerworks is a self-hosted software factory for AI coding agents.** You
-write a spec and its tickets as GitHub issues. tracerworks runs
-[Claude Code](https://claude.com/claude-code) workers, each in its own git
-worktree, that implement the tickets test-first and open a pull request. A
-merge queue tests it again, and tracerworks merges it. You decide what to
-build; the factory takes it from issue to merged pull request, and a
-dashboard shows every step.
+https://github.com/user-attachments/assets/40f229cf-d690-4b14-a84f-3cb3ce75e3a4
 
-It is a single command, stateless, written in Python with the standard
-library only, and MIT-licensed. It has been used daily since September 2026
-to build a personal project.
+It has been used daily since September 2026 to build a personal project:
+**432 pull requests merged in October, on a €10-a-month server.**
 
-![The tracerworks dashboard: queue, development, light check, merge queue and deliveries, on a fictitious project](docs/dashboard.png)
+```sh
+uv tool install git+https://github.com/hugop33/tracerworks
+```
 
 **[Install it →](INSTALL.md)** · [Screens](#screens) ·
 [How it works](#how-it-works) · [Security model](#security-model) ·
 [FAQ](#faq) · [Feedback](#feedback)
+
+> **Credits.** The way of working this factory drives — a spec, then
+> tracer-bullet tickets, then test-driven implementation and review — comes
+> from **Matt Pocock's skills: <https://github.com/mattpocock/skills>**. The
+> factory runs agents that use them; it does not ship them.
+
+**How it goes.** You write a spec and its tickets as GitHub issues.
+tracerworks runs [Claude Code](https://claude.com/claude-code) workers, each
+in its own git worktree, that implement the tickets test-first and open a pull
+request. A merge queue tests it again, and tracerworks merges it. You decide
+what to build; the factory takes it from issue to merged pull request, and a
+dashboard shows every step. It is a single command, stateless, written in
+Python with the standard library only, and MIT-licensed.
 
 ## What it does
 

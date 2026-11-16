@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.node_suite import assert_node_suite
 from tests.tracerworks.fakes import PACKAGE
 
 SUITE = Path(__file__).with_name("dashboard.test.mjs")
@@ -60,7 +61,7 @@ def test_hours_follow_the_browsers_time_zone(zone: str) -> None:
         env={**NODE_ENV, "TZ": zone},
     )
     assert run.returncode == 0, run.stdout[-4000:] + run.stderr[-2000:]
-    assert "# pass 1" in run.stdout, run.stdout[-2000:]
+    assert_node_suite(run.stdout, at_least=1)
 
 
 def test_the_unlabeled_counter_is_gone() -> None:
